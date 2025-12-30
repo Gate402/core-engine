@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  payoutWallet  String? // EVM address
+  payoutNetwork String? // 'base'
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  gateways      Gateway[]
+}
+
+model Gateway {
+  id               String       @id @default(uuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subdomain        String       @unique
+  customDomain     String?      @unique
+  originUrl        String
+  secretToken      String       @unique
+  pricePerRequest  Decimal      @db.Decimal(10, 6)
+  acceptedNetworks String[] // ['base-usdc']
+  status           String       @default("active")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  payments         Payment[]
+  requestLogs      RequestLog[]
+
+  @@index([subdomain])
+  @@index([customDomain])
+  @@index([userId])
+}
+
+model Payment {
+  id               String    @id @default(uuid())
+  gatewayId        String?
+  gateway          Gateway?  @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  amount           Decimal   @db.Decimal(20, 6)
+  network          String // 'base-usdc'
+  transactionHash  String    @unique
+  fromWallet       String
+  toWallet         String
+  blockNumber      BigInt?
+  status           String    @default("pending")
+  confirmationTime DateTime?
+  paymentProof     String    @db.Text
+  platformFee      Decimal   @default(0) @db.Decimal(20, 6)
+  providerRevenue  Decimal   @db.Decimal(20, 6)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([gatewayId])
+  @@index([transactionHash])
+  @@index([fromWallet])
+  @@index([createdAt])
+}
+
+model RequestLog {
+  id              String   @id @default(uuid())
+  gatewayId       String
+  gateway         Gateway  @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  method          String
+  path            String
+  statusCode      Int
+  paymentRequired Boolean  @default(false)
+  paymentProvided Boolean  @default(false)
+  paymentValid    Boolean  @default(false)
+  paymentId       String?
+  durationMs      Int?
+  clientWallet    String?
+  clientIp        String?
+  createdAt       DateTime @default(now())
+
+  @@index([gatewayId, createdAt])
+  @@index([clientWallet])
+}
