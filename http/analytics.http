@@ -1,0 +1,11 @@
+@baseUrl = http://localhost:3000/api/analytics
+@token = REPLACE_WITH_YOUR_ACCESS_TOKEN
+
+### Get Gateway Overview
+@gatewayId = REPLACE_WITH_GATEWAY_ID
+GET {{baseUrl}}/overview?gatewayId={{gatewayId}}
+Authorization: Bearer {{token}}
+
+### Get Top Payers
+GET {{baseUrl}}/top-payers?gatewayId={{gatewayId}}
+Authorization: Bearer {{token}}

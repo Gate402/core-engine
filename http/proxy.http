@@ -1,0 +1,18 @@
+@proxyBaseUrl = http://localhost:3000
+
+### Proxy Request to Gateway
+# Host header determines the gateway subdomain.
+# Assuming gateway with subdomain 'my-api' exists.
+# This requires adding '127.0.0.1 my-api.localhost' to /etc/hosts if trying to test locally with subdomains,
+# OR we can manually set the Host header as done here.
+
+GET {{proxyBaseUrl}}/some-path
+Host: my-api.localhost
+# If payment is required, you might need payment headers, but basic proxying should work if free or allowed.
+
+### Proxy Request with Custom Domain
+GET {{proxyBaseUrl}}/foo
+Host: api.example.com
+
+### Health Check (Direct)
+GET {{proxyBaseUrl}}/health

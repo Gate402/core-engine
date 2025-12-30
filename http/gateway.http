@@ -1,0 +1,39 @@
+@baseUrl = http://localhost:3000/api/gateways
+@token = REPLACE_WITH_YOUR_ACCESS_TOKEN
+
+### Create Gateway
+# UserId is extracted from token
+POST {{baseUrl}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "subdomain": "my-api",
+    "originUrl": "https://echo.free.beeceptor.com",
+    "pricePerRequest": 0.01,
+    "acceptedNetworks": ["base-sepolia"],
+    "customDomain": "api.example.com"
+}
+
+### Get Gateway by ID
+@gatewayId = REPLACE_WITH_GATEWAY_ID
+GET {{baseUrl}}/{{gatewayId}}
+Authorization: Bearer {{token}}
+
+### List Gateways by User
+# Returns gateways for the authenticated user
+GET {{baseUrl}}
+Authorization: Bearer {{token}}
+
+
+### Update Gateway
+PATCH {{baseUrl}}/{{gatewayId}}
+Content-Type: application/json
+
+{
+    "pricePerRequest": 0.02,
+    "status": "inactive"
+}
+
+### Delete Gateway
+DELETE {{baseUrl}}/{{gatewayId}}

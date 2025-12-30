@@ -1,0 +1,38 @@
+@baseUrl = http://localhost:3000/api/auth
+
+### Google Login
+# Use a valid Google ID Token obtained from client-side
+POST {{baseUrl}}/google
+Content-Type: application/json
+
+{
+    "token": "YOUR_GOOGLE_ID_TOKEN_HERE"
+}
+
+### Request OTP
+# Sends an OTP to the email (logs to console in dev mode)
+POST {{baseUrl}}/otp/request
+Content-Type: application/json
+
+{
+    "email": "test@example.com"
+}
+
+### Verify OTP
+# Replace YOUR_OTP with the code from server logs
+POST {{baseUrl}}/otp/verify
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "otp": "123456"
+}
+
+### Refresh Token
+# Uses the refreshToken received from login/verify endpoints
+POST {{baseUrl}}/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
