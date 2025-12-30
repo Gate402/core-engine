@@ -1,10 +1,11 @@
 import { createPublicClient, http, parseAbiItem } from 'viem';
 import { base } from 'viem/chains';
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 import redis from '../config/redis';
 import { env } from '../config/env';
 
 export class PaymentService {
+  private prisma = getPrismaClient();
   /**
    * Validates a payment proof (transaction hash) for a specific gateway.
    * Returns the Payment object if valid, throws error if invalid.
@@ -16,7 +17,7 @@ export class PaymentService {
     }
 
     // 2. Get Gateway config
-    const gateway = await prisma.gateway.findUnique({
+    const gateway = await this.prisma.gateway.findUnique({
       where: { id: gatewayId },
       include: { user: true },
     });
@@ -76,7 +77,7 @@ export class PaymentService {
     // This logic is VERY simplified.
 
     // 5. Create Payment Record
-    const payment = await prisma.payment.create({
+    const payment = await this.prisma.payment.create({
       data: {
         gatewayId,
         amount: gateway.pricePerRequest, // Storing in readable format
@@ -105,7 +106,7 @@ export class PaymentService {
     const cached = await redis.get(`payment_proof:${transactionHash}`);
     if (cached) return true;
 
-    const exists = await prisma.payment.findUnique({
+    const exists = await this.prisma.payment.findUnique({
       where: { transactionHash },
     });
     return !!exists;

@@ -32,6 +32,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^7.0.12",
     "viem": "^2.43.3",
+    "x402-axios": "^1.1.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -54,5 +55,8 @@
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }

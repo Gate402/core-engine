@@ -1,8 +1,9 @@
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 import redis from '../config/redis';
 import { generateSecretToken } from '../utils/crypto.util';
 
 export class GatewayService {
+  private prisma = getPrismaClient();
   async createGateway(data: {
     userId: string;
     subdomain: string;
@@ -12,13 +13,13 @@ export class GatewayService {
     customDomain?: string;
   }) {
     // 1. Check subdomain availability
-    const existing = await prisma.gateway.findUnique({
+    const existing = await this.prisma.gateway.findUnique({
       where: { subdomain: data.subdomain },
     });
     if (existing) throw new Error('Subdomain already taken');
 
     if (data.customDomain) {
-      const existingCustom = await prisma.gateway.findUnique({
+      const existingCustom = await this.prisma.gateway.findUnique({
         where: { customDomain: data.customDomain },
       });
       if (existingCustom) throw new Error('Custom domain already linked');
@@ -26,7 +27,7 @@ export class GatewayService {
 
     // 2. Create Gateway
     const secretToken = generateSecretToken();
-    const gateway = await prisma.gateway.create({
+    const gateway = await this.prisma.gateway.create({
       data: {
         userId: data.userId,
         subdomain: data.subdomain,
@@ -42,11 +43,11 @@ export class GatewayService {
   }
 
   async getGatewayById(id: string) {
-    return prisma.gateway.findUnique({ where: { id } });
+    return this.prisma.gateway.findUnique({ where: { id } });
   }
 
   async getGatewaysByUser(userId: string) {
-    return prisma.gateway.findMany({
+    return this.prisma.gateway.findMany({
       where: { userId, status: { not: 'deleted' } },
       orderBy: { createdAt: 'desc' },
     });
@@ -61,7 +62,7 @@ export class GatewayService {
       customDomain: string | null;
     }>,
   ) {
-    const gateway = await prisma.gateway.update({
+    const gateway = await this.prisma.gateway.update({
       where: { id },
       data,
     });
@@ -76,7 +77,7 @@ export class GatewayService {
   }
 
   async deleteGateway(id: string) {
-    const gateway = await prisma.gateway.update({
+    const gateway = await this.prisma.gateway.update({
       where: { id },
       data: { status: 'deleted' },
     });
@@ -106,12 +107,12 @@ export class GatewayService {
     // The instruction said: "Extract subdomain from hostname" -> "alice-weather" from "alice-weather.gate402.io"
     // So this finder might receive just "alice-weather" OR "api.weatherpro.com"
 
-    let gateway = await prisma.gateway.findUnique({
+    let gateway = await this.prisma.gateway.findUnique({
       where: { subdomain: host }, // try strictly as subdomain first
     });
 
     if (!gateway) {
-      gateway = await prisma.gateway.findUnique({
+      gateway = await this.prisma.gateway.findUnique({
         where: { customDomain: host },
       });
     }

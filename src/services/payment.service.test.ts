@@ -1,19 +1,22 @@
 import { PaymentService } from './payment.service';
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 import redis from '../config/redis';
 
 // Mock dependencies
+const prisma = {
+  gateway: {
+    findUnique: jest.fn(),
+  },
+  payment: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+  },
+};
+
 jest.mock('../config/database', () => ({
   __esModule: true,
-  default: {
-    gateway: {
-      findUnique: jest.fn(),
-    },
-    payment: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-  },
+  getPrismaClient: jest.fn(() => prisma),
+  connectDB: jest.fn(),
 }));
 
 jest.mock('../config/redis', () => ({

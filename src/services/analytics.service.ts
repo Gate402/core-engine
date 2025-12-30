@@ -1,6 +1,7 @@
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 
 export class AnalyticsService {
+  private prisma = getPrismaClient();
   /**
    * Fire-and-forget request logging
    */
@@ -20,7 +21,7 @@ export class AnalyticsService {
     // Don't await this if calling from main flow, unless critical
     // Using prisma.create directly.
     try {
-      await prisma.requestLog.create({
+      await this.prisma.requestLog.create({
         data,
       });
     } catch (err) {
@@ -30,15 +31,15 @@ export class AnalyticsService {
 
   async getGatewayOverview(gatewayId: string) {
     // Basic stats
-    const totalRequests = await prisma.requestLog.count({
+    const totalRequests = await this.prisma.requestLog.count({
       where: { gatewayId },
     });
 
-    const successfulPayments = await prisma.payment.count({
+    const successfulPayments = await this.prisma.payment.count({
       where: { gatewayId, status: 'confirmed' },
     });
 
-    const revenue = await prisma.payment.aggregate({
+    const revenue = await this.prisma.payment.aggregate({
       where: { gatewayId, status: 'confirmed' },
       _sum: {
         providerRevenue: true,
@@ -53,7 +54,7 @@ export class AnalyticsService {
   }
 
   async getTopPayers(gatewayId: string, limit = 10) {
-    const topPayers = await prisma.payment.groupBy({
+    const topPayers = await this.prisma.payment.groupBy({
       by: ['fromWallet'],
       where: { gatewayId, status: 'confirmed' },
       _sum: {

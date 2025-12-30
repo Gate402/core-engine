@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import * as AuthController from '../controllers/auth.controller';
+import { AuthController } from '../controllers/auth.controller';
+import { AuthenticationService } from '../services/authentication.service';
 
 const router = Router();
+const authService = new AuthenticationService();
+const authController = new AuthController(authService);
 
-router.post('/google', AuthController.googleLogin);
-router.post('/otp/request', AuthController.requestOtp);
-router.post('/otp/verify', AuthController.verifyOtp);
-router.post('/refresh', AuthController.refreshToken);
+router.post('/google', authController.googleLogin);
+router.post('/otp/request', authController.requestOtp);
+router.post('/otp/verify', authController.verifyOtp);
+router.post('/refresh', authController.refreshToken);
 
 export default router;

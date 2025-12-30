@@ -1,11 +1,10 @@
-import { PrismaClient, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import Redis from 'ioredis';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
+import { getPrismaClient } from '../config/database';
 
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
@@ -30,10 +29,12 @@ const transporter = nodemailer.createTransport({
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 export class AuthenticationService {
+  private prisma = getPrismaClient();
+
   /**
    * Generates Access and Refresh tokens for a user
    */
-  static generateTokens(user: User) {
+  public generateTokens(user: User) {
     const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
       expiresIn: ACCESS_TOKEN_EXPIRY,
     });
@@ -50,7 +51,7 @@ export class AuthenticationService {
   /**
    * Verifies Google ID Token and returns user (creating if necessary)
    */
-  static async verifyGoogleToken(token: string): Promise<{ user: User; tokens: any }> {
+  public async verifyGoogleToken(token: string): Promise<{ user: User; tokens: any }> {
     try {
       const ticket = await googleClient.verifyIdToken({
         idToken: token,
@@ -65,12 +66,12 @@ export class AuthenticationService {
       const { email, sub: googleId, name } = payload;
 
       // Find or create user
-      let user = await prisma.user.findUnique({
+      let user = await this.prisma.user.findUnique({
         where: { email },
       });
 
       if (!user) {
-        user = await prisma.user.create({
+        user = await this.prisma.user.create({
           data: {
             email,
             googleId,
@@ -79,7 +80,7 @@ export class AuthenticationService {
         });
       } else if (!user.googleId) {
         // Link Google ID if email exists but not linked
-        user = await prisma.user.update({
+        user = await this.prisma.user.update({
           where: { id: user.id },
           data: { googleId },
         });
@@ -96,7 +97,7 @@ export class AuthenticationService {
   /**
    * Requests an OTP for email login
    */
-  static async requestOtp(email: string): Promise<void> {
+  public async requestOtp(email: string): Promise<void> {
     const otp = crypto.randomInt(100000, 999999).toString();
     const key = `otp:${email}`;
 
@@ -124,7 +125,7 @@ export class AuthenticationService {
   /**
    * Verifies OTP and returns tokens
    */
-  static async verifyOtp(email: string, otp: string): Promise<{ user: User; tokens: any }> {
+  public async verifyOtp(email: string, otp: string): Promise<{ user: User; tokens: any }> {
     const key = `otp:${email}`;
     const storedOtp = await redis.get(key);
 
@@ -136,12 +137,12 @@ export class AuthenticationService {
     await redis.del(key);
 
     // Find or create user
-    let user = await prisma.user.findUnique({
+    let user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
-      user = await prisma.user.create({
+      user = await this.prisma.user.create({
         data: {
           email,
         },
@@ -155,14 +156,14 @@ export class AuthenticationService {
   /**
    * Refreshes access token using refresh token
    */
-  static async refreshAccessToken(
+  public async refreshAccessToken(
     refreshToken: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as any;
       const { userId } = payload;
 
-      const user = await prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id: userId },
       });
 

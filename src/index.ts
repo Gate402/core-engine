@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import bodyParser from 'body-parser';
 import { env } from './config/env';
+import { connectDB } from './config/database'; // Import connectDB
 import gatewayRoutes from './routes/gateway.routes';
 import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
@@ -36,7 +37,10 @@ app.use(proxyMiddleware);
 
 const PORT = env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Gate402 Core Engine running on port ${PORT}`);
-  console.log(`Environment: ${env.NODE_ENV}`);
+// Connect to DB then start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Gate402 Core Engine running on port ${PORT}`);
+    console.log(`Environment: ${env.NODE_ENV}`);
+  });
 });
