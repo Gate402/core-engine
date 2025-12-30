@@ -1,10 +1,14 @@
 import { Router } from 'express';
 import { AnalyticsService } from '../services/analytics.service';
 import { GatewayService } from '../services/gateway.service';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 const analyticsService = new AnalyticsService();
 const gatewayService = new GatewayService();
+
+// Apply authentication
+router.use(authenticate);
 
 // GET /api/analytics/overview?gatewayId=xyz
 router.get('/overview', async (req, res) => {

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import bodyParser from 'body-parser';
 import { env } from './config/env';
 import gatewayRoutes from './routes/gateway.routes';
+import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import { proxyMiddleware } from './middleware/proxy.middleware';
 
@@ -18,6 +19,7 @@ app.use(bodyParser.json());
 
 // API Routes (Prefix /api)
 // IMPORTANT: These MUST be before the proxy middleware to ensure they are reachable!
+app.use('/api/auth', authRoutes);
 app.use('/api/gateways', gatewayRoutes);
 app.use('/api/analytics', analyticsRoutes);
 

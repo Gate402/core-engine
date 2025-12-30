@@ -1,23 +1,27 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { GatewayService } from '../services/gateway.service';
 import { extractSubdomain, isValidSubdomain } from '../utils/subdomain.util';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 const gatewayService = new GatewayService();
 
-// Middleware to mock a "logged in user" for now, or assume UserId is passed?
-// Instructions said "User" model exists and "auth.middleware.ts" was in project structure.
-// I will assume for now we just pass userId in body or headers for MVP testing.
-// In real app, we'd extract from JWT.
+// Apply authentication to all gateway routes
+router.use(authenticate);
 
 // POST /api/gateways
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res) => {
   try {
-    const { userId, originUrl, pricePerRequest, acceptedNetworks, customDomain, subdomain } =
-      req.body;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+    const { originUrl, pricePerRequest, acceptedNetworks, customDomain, subdomain } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not identified' });
+    }
 
     // Basic validation
-    if (!userId || !originUrl || !pricePerRequest || !acceptedNetworks || !subdomain) {
+    if (!originUrl || !pricePerRequest || !acceptedNetworks || !subdomain) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -43,6 +47,7 @@ router.post('/', async (req, res) => {
 // GET /api/gateways/:id
 router.get('/:id', async (req, res) => {
   try {
+    // TODO: Verify ownership?
     const gateway = await gatewayService.getGatewayById(req.params.id);
     if (!gateway) return res.status(404).json({ error: 'Not found' });
     res.json(gateway);
@@ -52,10 +57,14 @@ router.get('/:id', async (req, res) => {
 });
 
 // GET /api/gateways (List by user)
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res) => {
   try {
-    const userId = req.query.userId as string;
-    if (!userId) return res.status(400).json({ error: 'UserId required' });
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not identified' });
+    }
 
     const gateways = await gatewayService.getGatewaysByUser(userId);
     res.json(gateways);
@@ -67,6 +76,7 @@ router.get('/', async (req, res) => {
 // PATCH /api/gateways/:id
 router.patch('/:id', async (req, res) => {
   try {
+    // TODO: Verify ownership
     const gateway = await gatewayService.updateGateway(req.params.id, req.body);
     res.json(gateway);
   } catch (err: any) {
@@ -77,6 +87,7 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/gateways/:id
 router.delete('/:id', async (req, res) => {
   try {
+    // TODO: Verify ownership
     await gatewayService.deleteGateway(req.params.id);
     res.status(204).send();
   } catch (err: any) {
