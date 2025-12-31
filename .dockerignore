@@ -1,0 +1,13 @@
+node_modules
+dist
+npm-debug.log
+.env
+.git
+.vscode
+Dockerfile
+.dockerignore
+docs
+scripts
+MIGRATION_SUMMARY.md
+instruction.md
+README.md
