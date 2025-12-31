@@ -32,6 +32,9 @@ model Gateway {
   status           String       @default("active")
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+  paymentScheme    String       @default("exact")
+  paymentNetwork   String       @default("eip155:84532") // Base Sepolia
+  evmAddress       String // Payment recipient
   payments         Payment[]
   requestLogs      RequestLog[]
 
