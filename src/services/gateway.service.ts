@@ -11,6 +11,9 @@ export class GatewayService {
     pricePerRequest: number;
     acceptedNetworks: string[];
     customDomain?: string;
+    paymentScheme?: string;
+    paymentNetwork?: string;
+    evmAddress: string;
   }) {
     // 1. Check subdomain availability
     const existing = await this.prisma.gateway.findUnique({
@@ -36,6 +39,9 @@ export class GatewayService {
         acceptedNetworks: data.acceptedNetworks,
         secretToken,
         customDomain: data.customDomain,
+        paymentScheme: data.paymentScheme || 'exact',
+        paymentNetwork: data.paymentNetwork || 'eip155:84532',
+        evmAddress: data.evmAddress,
       },
     });
 
@@ -60,6 +66,9 @@ export class GatewayService {
       pricePerRequest: number;
       status: string;
       customDomain: string | null;
+      paymentScheme: string;
+      paymentNetwork: string;
+      evmAddress: string;
     }>,
   ) {
     const gateway = await this.prisma.gateway.update({

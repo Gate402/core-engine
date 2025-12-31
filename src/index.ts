@@ -3,11 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import bodyParser from 'body-parser';
 import { env } from './config/env';
-import { connectDB } from './config/database'; // Import connectDB
+import { connectDB } from './config/database';
+import { X402Service } from './services/x402.service';
 import gatewayRoutes from './routes/gateway.routes';
 import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
-import { proxyMiddleware } from './middleware/proxy.middleware';
+import { createProxyMiddleware } from './middleware/proxy.middleware';
 
 const app = express();
 
@@ -28,17 +29,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Proxy Middleware
-// Catches everything else.
-// Logic: If request Host is a subdomain (and not just API hitting IP directly), process it.
-// If it's a direct IP hit to root path not /api, what happens?
-// proxyMiddleware handles 404 if gateway not found.
-app.use(proxyMiddleware);
-
 const PORT = env.PORT || 3000;
 
-// Connect to DB then start server
-connectDB().then(() => {
+// Connect to DB and initialize x402, then start server
+connectDB().then(async () => {
+  console.log('🔧 Initializing x402 service...');
+  const x402Service = new X402Service();
+  await x402Service.initialize();
+
+  // Proxy Middleware (applied after x402 initialization)
+  app.use(createProxyMiddleware(x402Service));
+
   app.listen(PORT, () => {
     console.log(`Gate402 Core Engine running on port ${PORT}`);
     console.log(`Environment: ${env.NODE_ENV}`);

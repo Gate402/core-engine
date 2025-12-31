@@ -1,17 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { GatewayService } from './gateway.service';
-import { PaymentService } from './payment.service';
+import { X402Service } from './x402.service';
 import { AnalyticsService } from './analytics.service';
+import type { PaymentRequirements } from '@x402/core/types';
 
 export class ProxyService {
   private gatewayService: GatewayService;
-  private paymentService: PaymentService;
+  private x402Service: X402Service;
   private analyticsService: AnalyticsService;
 
-  constructor() {
+  constructor(x402Service: X402Service) {
     this.gatewayService = new GatewayService();
-    this.paymentService = new PaymentService();
+    this.x402Service = x402Service;
     this.analyticsService = new AnalyticsService();
   }
 
@@ -27,59 +28,127 @@ export class ProxyService {
 
     req.gateway = gateway;
 
-    // 2. Check Payment Logic
-    const paymentProof = req.headers['x402-payment'] as string;
-    let paymentValid = false;
-    let paymentId = undefined;
-    let paymentError = null;
-
-    if (paymentProof) {
-      try {
-        const payment = await this.paymentService.verifyPayment(paymentProof, gateway.id);
-        paymentValid = true;
-        paymentId = payment.id;
-        req.paymentInfo = payment;
-      } catch (err: any) {
-        paymentError = err.message;
-      }
+    // 2. Build payment requirements for this gateway
+    let requirements: PaymentRequirements;
+    try {
+      requirements = await this.x402Service.buildPaymentRequirements(gateway);
+    } catch (error) {
+      console.error('Failed to build payment requirements:', error);
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // 3. Prepare Log Data
+    // 3. Check for payment headers (v2: PAYMENT-SIGNATURE, v1: X-PAYMENT)
+    const paymentHeader = (req.headers['payment-signature'] || req.headers['x-payment']) as
+      | string
+      | undefined;
+
     const startTime = Date.now();
     const logData = {
       gatewayId: gateway.id,
       method: req.method,
       path: req.path,
-      statusCode: paymentValid ? 200 : 402, // Provisional
+      statusCode: 200, // Will be updated
       paymentRequired: true,
-      paymentProvided: !!paymentProof,
-      paymentValid: paymentValid,
-      paymentId: paymentId,
+      paymentProvided: !!paymentHeader,
+      paymentValid: false,
+      paymentId: undefined as string | undefined,
       clientIp: req.ip,
-      clientWallet: req.paymentInfo?.fromWallet,
+      clientWallet: undefined as string | undefined,
     };
 
-    // 4. Enforce Payment
-    if (!paymentValid) {
-      // Log failure
+    // 4. If no payment, return 402 with PAYMENT-REQUIRED header
+    if (!paymentHeader) {
+      console.log('💳 No payment provided, returning 402 Payment Required');
+
+      const paymentRequired = this.x402Service.createPaymentRequiredResponse(requirements, {
+        url: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+        description: gateway.subdomain,
+        mimeType: 'application/json',
+      });
+
+      // Encode requirements as base64 for PAYMENT-REQUIRED header (v2 protocol)
+      const requirementsHeader = Buffer.from(JSON.stringify(paymentRequired)).toString('base64');
+
       this.analyticsService.logRequest({
         ...logData,
         statusCode: 402,
         durationMs: Date.now() - startTime,
       });
-      return res.status(402).json({
+
+      res.status(402);
+      res.set('PAYMENT-REQUIRED', requirementsHeader);
+      res.json({
         error: 'Payment Required',
-        message: paymentError || 'Missing or invalid x402-payment header',
+        message: 'This endpoint requires payment',
         details: {
           price: gateway.pricePerRequest,
-          currency: 'USDC',
-          networks: gateway.acceptedNetworks,
-          recipient: gateway.user?.payoutWallet,
+          network: gateway.paymentNetwork || 'eip155:84532',
+          recipient: gateway.evmAddress,
         },
       });
+      return;
     }
 
-    // 5. Proxy Request
+    // 5. Verify payment with facilitator
+    console.log('🔐 Payment provided, verifying with facilitator...');
+
+    const verifyResult = await this.x402Service.verifyPayment(paymentHeader, requirements);
+
+    if (!verifyResult.isValid) {
+      console.log(`❌ Payment verification failed: ${verifyResult.invalidReason}`);
+
+      this.analyticsService.logRequest({
+        ...logData,
+        statusCode: 402,
+        paymentValid: false,
+        durationMs: Date.now() - startTime,
+      });
+
+      res.status(402).json({
+        error: 'Invalid Payment',
+        reason: verifyResult.invalidReason,
+      });
+      return;
+    }
+
+    console.log('✅ Payment verified successfully');
+    logData.paymentValid = true;
+
+    // Store original json method
+    const originalJson = res.json.bind(res);
+    let settlementDone = false;
+
+    // 6. Intercept response to add settlement
+    const settleAndRespond = async (): Promise<void> => {
+      if (settlementDone) return;
+      settlementDone = true;
+
+      console.log('💰 Settling payment on-chain...');
+
+      try {
+        const settleResult = await this.x402Service.settlePayment(
+          verifyResult.paymentPayload,
+          requirements,
+        );
+
+        // Add PAYMENT-RESPONSE header (v2 protocol)
+        const settlementHeader = Buffer.from(JSON.stringify(settleResult)).toString('base64');
+        res.set('PAYMENT-RESPONSE', settlementHeader);
+
+        console.log(`✅ Payment settled: ${settleResult.transaction}`);
+      } catch (error) {
+        console.error(`❌ Settlement failed: ${error}`);
+        // Continue with response even if settlement fails
+      }
+    };
+
+    // Override json method to add settlement before responding
+    res.json = function (this: Response, body: unknown): Response {
+      void settleAndRespond().then(() => originalJson(body));
+      return this;
+    };
+
+    // 7. Proxy Request to origin
     const proxy = createProxyMiddleware({
       target: gateway.originUrl,
       changeOrigin: true,
@@ -110,7 +179,7 @@ export class ProxyService {
             durationMs: Date.now() - startTime,
           });
 
-          // res is http.ServerResponse, not Express.Response here strictly speaking in types
+          // res is http.ServerResponse, not Express.Response here strict speaking in types
           (res as any).writeHead(502, { 'Content-Type': 'text/plain' });
           (res as any).end('Bad Gateway');
         },
