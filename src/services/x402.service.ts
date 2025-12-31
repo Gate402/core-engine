@@ -65,7 +65,11 @@ export class X402Service {
       scheme: gateway.paymentScheme || 'exact',
       network: (gateway.paymentNetwork || 'eip155:84532') as `${string}:${string}`,
       payTo: gateway.evmAddress as `0x${string}`,
-      price: `$${gateway.defaultPricePerRequest}`, // Convert to x402 price format
+      // price: `$${gateway.defaultPricePerRequest}`, // Convert to x402 price format
+      price: {
+        amount: gateway.defaultPricePerRequest.toString(),
+        asset: 'eth',
+      },
     };
 
     const builtRequirements = await this.resourceServer.buildPaymentRequirements(config);

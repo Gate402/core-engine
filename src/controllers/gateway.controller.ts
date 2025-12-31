@@ -10,7 +10,7 @@ export class GatewayController {
    * Quick-create gateway with auto-generated subdomain
    * POST /api/gateways/quick-create
    */
-  public quickCreate = async (req: Request, res: Response) => {
+  public quickCreate = async (req: Request, res: Response): Promise<any> => {
     try {
       const authReq = req as AuthRequest;
       const userId = authReq.user?.userId;
