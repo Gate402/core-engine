@@ -1,42 +1,64 @@
-export const extractSubdomain = (host: string): string | null => {
-  // host: "alice.gate402.io" -> "alice"
-  // host: "localhost:3000" -> null (or handle localhost for dev)
-  // host: "custom.com" -> null (treated as full domain)
+import { nanoid } from 'nanoid';
 
+/**
+ * Generate a unique subdomain from an origin URL
+ * Format: {sanitized-hostname}-{random-6}
+ * Example: "api-example-a3f9k2"
+ */
+export function generateSubdomain(originUrl: string): string {
+  try {
+    const url = new URL(originUrl);
+    const hostname = url.hostname.split('.')[0];
+
+    // Sanitize: lowercase, alphanumeric + hyphens only, max 20 chars
+    const sanitized = hostname
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+      .substring(0, 20);
+
+    // Add random suffix for uniqueness
+    const suffix = nanoid(6).toLowerCase();
+
+    return `${sanitized}-${suffix}`;
+  } catch {
+    // Fallback if URL parsing fails
+    return `api-${nanoid(8).toLowerCase()}`;
+  }
+}
+
+/**
+ * Validate subdomain format
+ * Rules: lowercase alphanumeric + hyphens, 1-63 chars, no leading/trailing hyphens
+ */
+export function isValidSubdomain(subdomain: string): boolean {
+  const regex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+  return regex.test(subdomain);
+}
+
+/**
+ * Extract subdomain from hostname
+ * Examples:
+ *   "api.gate402.io" -> "api"
+ *   "api.localhost" -> "api"
+ *   "localhost" -> null
+ */
+export function extractSubdomain(host: string): string | null {
   const parts = host.split('.');
 
-  // Basic logic: if 3 parts and ends with gate402.io, return first part
-  // Adjust for localhost/dev env
+  // Handle localhost development
   if (host.includes('localhost')) {
-    // e.g. alice.localhost
     if (parts.length >= 2 && parts[parts.length - 1].startsWith('localhost')) {
       return parts[0];
     }
     return null;
   }
 
-  // Production logic: assume gate402.io (or whatever domain)
-  // We can loosely check if it ends with our suffix if configured, or just trust the structure.
-  // For now: if it looks like a subdomain of our main domain.
-  // But wait, the instruction says: "Express reads req.hostname -> 'alice-weather.gate402.io'"
-  // We need to know our own ROOT_DOMAIN to extract safely.
-  // For now, let's treat any 3+ part domain as potential subdomain if it matches pattern.
-
-  // Better approach:
-  // If we receive "alice.gate402.io", we return "alice".
-  // If we receive "api.weatherpro.com", we return null (uses custom domain logic).
-
+  // Production: extract first part if 3+ parts
   if (parts.length > 2) {
-    // Check if it ends with standard domain parts?
-    // Simplified: return the first part if it looks like a subdomain.
     return parts[0];
   }
 
   return null;
-};
-
-export const isValidSubdomain = (subdomain: string): boolean => {
-  // Alphanumeric + hyphens, 1-63 chars
-  const regex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
-  return regex.test(subdomain);
-};
+}

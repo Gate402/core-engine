@@ -33,6 +33,7 @@
     "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
+    "nanoid": "^5.1.6",
     "nodemailer": "^7.0.12",
     "viem": "^2.43.3",
     "x402-axios": "^1.1.0",

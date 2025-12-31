@@ -1,6 +1,7 @@
 import { getPrismaClient } from '../config/database';
 import redis from '../config/redis';
 import { generateSecretToken } from '../utils/crypto.util';
+import { extractSubdomain } from '../utils/subdomain.util';
 
 export class GatewayService {
   private prisma = getPrismaClient();
@@ -103,31 +104,33 @@ export class GatewayService {
   // --- caching logic for proxy ---
 
   async resolveGateway(host: string): Promise<any | null> {
-    // Try cache
+    // Try cache first (using full hostname as cache key)
     const cached = await redis.get(`gateway:${host}`);
     if (cached) return JSON.parse(cached);
 
-    // Try DB (subdomain or custom domain)
-    // Assume host is either "sub.gate402.io" or "custom.com"
-    // Logic: if host ends with gate402 domain, extract subdomain. Else check customDomain.
-    // For now, let's keep it simple: try both fields.
+    // Extract subdomain from hostname (e.g., "client1.gate402.io" -> "client1")
+    const subdomain = extractSubdomain(host);
 
-    // Assuming subdomain is just the label, not full host?
-    // The instruction said: "Extract subdomain from hostname" -> "alice-weather" from "alice-weather.gate402.io"
-    // So this finder might receive just "alice-weather" OR "api.weatherpro.com"
+    let gateway = null;
 
-    let gateway = await this.prisma.gateway.findUnique({
-      where: { subdomain: host }, // try strictly as subdomain first
-    });
+    // 1. Try subdomain match if we extracted one
+    if (subdomain) {
+      gateway = await this.prisma.gateway.findUnique({
+        where: { subdomain },
+      });
+    }
 
+    // 2. Fallback to custom domain match (full hostname)
     if (!gateway) {
       gateway = await this.prisma.gateway.findUnique({
         where: { customDomain: host },
       });
     }
 
+    // 3. Cache and return if found and active
     if (gateway && gateway.status === 'active') {
-      await redis.setex(`gateway:${host}`, 300, JSON.stringify(gateway)); // 5 min TTL
+      // Cache using full hostname as key for 5 minutes
+      await redis.setex(`gateway:${host}`, 300, JSON.stringify(gateway));
       return gateway;
     }
 
