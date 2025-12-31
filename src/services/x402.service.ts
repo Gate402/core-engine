@@ -50,7 +50,7 @@ export class X402Service {
    */
   async buildPaymentRequirements(gateway: {
     id: string;
-    pricePerRequest: number;
+    defaultPricePerRequest: number;
     paymentScheme?: string;
     paymentNetwork?: string;
     evmAddress?: string;
@@ -65,7 +65,7 @@ export class X402Service {
       scheme: gateway.paymentScheme || 'exact',
       network: (gateway.paymentNetwork || 'eip155:84532') as `${string}:${string}`,
       payTo: gateway.evmAddress as `0x${string}`,
-      price: `$${gateway.pricePerRequest}`, // Convert to x402 price format
+      price: `$${gateway.defaultPricePerRequest}`, // Convert to x402 price format
     };
 
     const builtRequirements = await this.resourceServer.buildPaymentRequirements(config);

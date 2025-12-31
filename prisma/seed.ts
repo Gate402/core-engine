@@ -8,38 +8,47 @@ async function main() {
 
   // 1. Create a Test User
   const user = await prisma.user.upsert({
-    where: { email: 'test@gate402.io' },
+    where: { email: 'jasonstanleyyoman@gmail.com' },
     update: {},
     create: {
-      email: 'test@gate402.io',
+      email: 'jasonstanleyyoman@gmail.com',
       name: 'Test Gate402 User',
-      payoutWallet: '0x1234567890123456789012345678901234567890', // Dummy
-      payoutNetwork: 'base',
     },
   });
   console.log(`✅ User created/found: ${user.id}`);
 
   // 2. Create a Test Gateway
-  // Random secret token
+  // Point this to your local x402 server (e.g. scripts/custom-402.ts on port 4021)
   const secretToken = `sk_test_${generatePrivateKey().slice(2, 34)}`;
+  const testEvmAddress = process.env.EVM_ADDRESS || '0x0057966BcDd185DfcF44fCB64a948b26338701E7';
 
   const gateway = await prisma.gateway.upsert({
     where: { subdomain: 'test-api' },
-    update: {},
+    update: {
+      originUrl: 'http://localhost:4021/weather',
+      defaultPricePerRequest: 0.001,
+      paymentNetwork: 'eip155:84532',
+      evmAddress: testEvmAddress,
+    },
     create: {
       userId: user.id,
-      subdomain: 'test-api', // Will result in test-api.localhost or test-api.gate402.io
-      originUrl: 'https://jsonplaceholder.typicode.com/posts/1', // Good for testing, returns JSON
-      pricePerRequest: 0.1, // 0.1 USDC
-      acceptedNetworks: ['base-usdc'],
+      subdomain: 'test-api',
+      originUrl: 'http://localhost:4021/weather',
+      defaultPricePerRequest: 0.001,
+      acceptedNetworks: ['eip155:84532'],
       status: 'active',
       secretToken: secretToken,
+      paymentScheme: 'exact',
+      paymentNetwork: 'eip155:84532',
+      evmAddress: testEvmAddress,
     },
   });
   console.log(`✅ Gateway created/found: ${gateway.subdomain}`);
   console.log(`   ID: ${gateway.id}`);
+  console.log(`   Target: ${gateway.originUrl}`);
   console.log(`   Secret: ${gateway.secretToken}`);
-  console.log(`   Price: ${gateway.pricePerRequest} USDC`);
+  console.log(`   Price: $${gateway.defaultPricePerRequest}`);
+  console.log(`   Payment Address: ${gateway.evmAddress}`);
 
   console.log('🌱 Seed finished.');
 }

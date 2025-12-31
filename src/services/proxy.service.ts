@@ -107,7 +107,7 @@ export class ProxyService {
         error: 'Payment Required',
         message: 'This endpoint requires payment',
         details: {
-          price: gateway.pricePerRequest,
+          price: gateway.defaultPricePerRequest,
           network: gateway.paymentNetwork || 'eip155:84532',
           recipient: gateway.evmAddress,
         },

@@ -9,7 +9,7 @@ export class GatewayService {
     userId: string;
     subdomain: string;
     originUrl: string;
-    pricePerRequest: number;
+    defaultPricePerRequest: number;
     acceptedNetworks: string[];
     customDomain?: string;
     paymentScheme?: string;
@@ -36,7 +36,7 @@ export class GatewayService {
         userId: data.userId,
         subdomain: data.subdomain,
         originUrl: data.originUrl,
-        pricePerRequest: data.pricePerRequest,
+        defaultPricePerRequest: data.defaultPricePerRequest,
         acceptedNetworks: data.acceptedNetworks,
         secretToken,
         customDomain: data.customDomain,
@@ -64,7 +64,7 @@ export class GatewayService {
     id: string,
     data: Partial<{
       originUrl: string;
-      pricePerRequest: number;
+      defaultPricePerRequest: number;
       status: string;
       customDomain: string | null;
       paymentScheme: string;

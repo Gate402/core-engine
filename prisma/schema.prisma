@@ -8,63 +8,74 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  googleId      String?   @unique
-  name          String?
-  payoutWallet  String? // EVM address
-  payoutNetwork String? // 'base'
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  gateways      Gateway[]
+  id       String  @id @default(uuid())
+  email    String  @unique
+  googleId String? @unique
+  name     String?
+
+  // Subscription/Quota (for future freemium model)
+  subscriptionTier   String   @default("free")
+  subscriptionStatus String   @default("active")
+  requestQuota       Int      @default(1000) // Free: 1K requests/month
+  requestCount       Int      @default(0)
+  quotaResetAt       DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  gateways  Gateway[]
+
+  @@index([email])
+  @@index([subscriptionTier])
 }
 
 model Gateway {
-  id               String       @id @default(uuid())
-  userId           String
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subdomain        String       @unique
-  customDomain     String?      @unique
-  originUrl        String
-  secretToken      String       @unique
-  pricePerRequest  Decimal      @db.Decimal(10, 6)
-  acceptedNetworks String[] // ['base-usdc']
-  status           String       @default("active")
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  paymentScheme    String       @default("exact")
-  paymentNetwork   String       @default("eip155:84532") // Base Sepolia
-  evmAddress       String // Payment recipient
-  payments         Payment[]
-  requestLogs      RequestLog[]
+  id           String  @id @default(uuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subdomain    String  @unique
+  customDomain String? @unique
+  originUrl    String
+  secretToken  String  @unique
+
+  // Renamed for route future-proofing
+  defaultPricePerRequest Decimal @db.Decimal(10, 6)
+
+  acceptedNetworks String[]
+  status           String   @default("active")
+  paymentScheme    String   @default("exact")
+  paymentNetwork   String   @default("eip155:84532") // Base Sepolia
+  evmAddress       String // Payment recipient (API provider wallet)
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  payments    Payment[]
+  requestLogs RequestLog[]
 
   @@index([subdomain])
   @@index([customDomain])
   @@index([userId])
+  @@index([status])
 }
 
 model Payment {
-  id               String    @id @default(uuid())
-  gatewayId        String?
-  gateway          Gateway?  @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
-  amount           Decimal   @db.Decimal(20, 6)
-  network          String // 'base-usdc'
-  transactionHash  String    @unique
-  fromWallet       String
-  toWallet         String
-  blockNumber      BigInt?
-  status           String    @default("pending")
-  confirmationTime DateTime?
-  paymentProof     String    @db.Text
-  platformFee      Decimal   @default(0) @db.Decimal(20, 6)
-  providerRevenue  Decimal   @db.Decimal(20, 6)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String   @id @default(uuid())
+  gatewayId       String?
+  gateway         Gateway? @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  amount          Decimal  @db.Decimal(20, 6)
+  network         String
+  transactionHash String   @unique
+  fromWallet      String // Consumer wallet
+  toWallet        String // Gateway.evmAddress (provider wallet)
+  blockNumber     BigInt?
+  status          String   @default("confirmed")
+  paymentProof    String   @db.Text
+  createdAt       DateTime @default(now())
 
   @@index([gatewayId])
   @@index([transactionHash])
   @@index([fromWallet])
   @@index([createdAt])
+  @@index([status])
 }
 
 model RequestLog {
@@ -84,5 +95,7 @@ model RequestLog {
   createdAt       DateTime @default(now())
 
   @@index([gatewayId, createdAt])
-  @@index([clientWallet])
+  @@index([gatewayId, statusCode, createdAt]) // Error tracking
+  @@index([gatewayId, path]) // Route analytics
+  @@index([clientWallet, createdAt])
 }

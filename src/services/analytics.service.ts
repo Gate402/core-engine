@@ -42,14 +42,14 @@ export class AnalyticsService {
     const revenue = await this.prisma.payment.aggregate({
       where: { gatewayId, status: 'confirmed' },
       _sum: {
-        providerRevenue: true,
+        amount: true,
       },
     });
 
     return {
       totalRequests,
       successfulPayments,
-      totalRevenue: revenue._sum.providerRevenue || 0,
+      totalRevenue: revenue._sum.amount || 0,
     };
   }
 
