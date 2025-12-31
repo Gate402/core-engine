@@ -99,3 +99,28 @@ model RequestLog {
   @@index([gatewayId, path]) // Route analytics
   @@index([clientWallet, createdAt])
 }
+
+model Chain {
+  id             String   @id // e.g. "eip155:84532"
+  name           String
+  nativeCurrency String // e.g. "eth"
+  rpcUrl         String?
+  blockExplorer  String?
+  tokens         Token[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Token {
+  id        String   @id @default(uuid())
+  chainId   String
+  chain     Chain    @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  symbol    String // e.g. "usdc"
+  address   String // e.g. "0x..."
+  decimals  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chainId, symbol])
+  @@index([chainId])
+}

@@ -1,10 +1,50 @@
 import { PrismaClient } from '@prisma/client';
 import { generatePrivateKey } from 'viem/accounts';
+import { CHAIN_CONFIGS } from '../src/config/chains';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting seed...');
+
+  // 0. Seed Chains and Tokens
+  for (const [chainId, config] of Object.entries(CHAIN_CONFIGS)) {
+    const chain = await prisma.chain.upsert({
+      where: { id: chainId },
+      update: {
+        name: config.name,
+        nativeCurrency: config.nativeCurrency,
+      },
+      create: {
+        id: chainId,
+        name: config.name,
+        nativeCurrency: config.nativeCurrency,
+      },
+    });
+    console.log(`✅ Chain synced: ${chain.name} (${chain.id})`);
+
+    for (const [symbol, asset] of Object.entries(config.assets)) {
+      await prisma.token.upsert({
+        where: {
+          chainId_symbol: {
+            chainId: chain.id,
+            symbol: symbol,
+          },
+        },
+        update: {
+          address: asset.address,
+          decimals: asset.decimals,
+        },
+        create: {
+          chainId: chain.id,
+          symbol: symbol,
+          address: asset.address,
+          decimals: asset.decimals,
+        },
+      });
+    }
+  }
+  console.log('✅ Tokens synced');
 
   // 1. Create a Test User
   const user = await prisma.user.upsert({
