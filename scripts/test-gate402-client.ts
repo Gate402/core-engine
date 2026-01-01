@@ -70,6 +70,7 @@ async function testPaymentFlow(path: string = '/') {
 
   console.log('📋 Step 2: Decoding payment requirements...');
   const paymentRequired = decodePaymentRequiredHeader(paymentRequiredHeader);
+  console.log(paymentRequired);
 
   const requirements: PaymentRequirements[] = Array.isArray(paymentRequired.accepts)
     ? paymentRequired.accepts
@@ -90,11 +91,22 @@ async function testPaymentFlow(path: string = '/') {
 
   // Step 4: Retry with payment
   console.log('🔄 Step 4: Retrying with PAYMENT-SIGNATURE header...');
-  response = await fetch(url, {
-    headers: {
-      'PAYMENT-SIGNATURE': paymentHeader,
-    },
-  });
+  console.log(paymentHeader);
+  try {
+    console.log('retrying');
+    response = await fetch(url, {
+      headers: {
+        'PAYMENT-SIGNATURE': paymentHeader,
+      },
+    });
+    console.log('hahahah');
+    console.log(`📥 Response: ${response.status} ${response.statusText}\n`);
+  } catch (error) {
+    console.log(error);
+    console.error('❌ Payment verification failed');
+    console.error('Response:', await response.text());
+    return;
+  }
 
   console.log(`📥 Response: ${response.status} ${response.statusText}\n`);
 

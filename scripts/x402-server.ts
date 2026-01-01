@@ -34,8 +34,16 @@ app.use(
   ),
 );
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   console.log('debug');
+  console.log(
+    await resourceServer.buildPaymentRequirements({
+      scheme: 'exact',
+      price: '$0.10',
+      network: 'eip155:84532',
+      payTo: '0xYourAddress',
+    }),
+  );
   res.json({ message: 'This content is behind a paywall' });
 });
 
