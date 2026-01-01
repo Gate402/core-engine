@@ -1,6 +1,7 @@
 import { x402ResourceServer, HTTPFacilitatorClient, ResourceConfig } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
-import type { PaymentRequirements, PaymentRequired } from '@x402/core/types';
+import type { PaymentRequirements, PaymentRequired, SettleResponse } from '@x402/core/types';
+import { PrismaClient } from '@prisma/client';
 
 /**
  * x402 Payment Service
@@ -14,6 +15,7 @@ export class X402Service {
   private resourceServer: x402ResourceServer;
   private requirementsCache: Map<string, PaymentRequirements>;
   private initialized: boolean = false;
+  private prisma: PrismaClient;
 
   constructor() {
     const facilitatorUrl = process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
@@ -21,11 +23,9 @@ export class X402Service {
     console.log(`🔗 Initializing x402 with facilitator: ${facilitatorUrl}`);
 
     this.facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
-    this.resourceServer = new x402ResourceServer(this.facilitatorClient).register(
-      'eip155:84532', // Base Sepolia
-      new ExactEvmScheme(),
-    );
+    this.resourceServer = new x402ResourceServer(this.facilitatorClient);
     this.requirementsCache = new Map();
+    this.prisma = new PrismaClient();
   }
 
   /**
@@ -35,6 +35,10 @@ export class X402Service {
     if (this.initialized) return;
 
     try {
+      const chains = await this.prisma.chain.findMany();
+      for (const chain of chains) {
+        this.resourceServer.register(chain.id as `${string}:${string}`, new ExactEvmScheme());
+      }
       await this.resourceServer.initialize();
       this.initialized = true;
       console.log('✅ x402 resource server initialized');
@@ -55,20 +59,36 @@ export class X402Service {
     paymentNetwork?: string;
     evmAddress?: string;
   }): Promise<PaymentRequirements> {
-    // Check cache first
-    const cacheKey = gateway.id;
+    const networkId = (gateway.paymentNetwork || 'eip155:84532') as string;
+    const chain = await this.prisma.chain.findUnique({
+      where: { id: networkId },
+      include: { tokens: true },
+    });
+    if (!chain) {
+      throw new Error(`Chain ${networkId} not found`);
+    }
+    if (chain.tokens.length === 0) {
+      throw new Error(`Chain ${networkId} has no tokens`);
+    }
+    const token = chain.tokens[0];
+
+    // Check cache first - now using gateway ID, network, and asset symbol
+    const cacheKey = `${gateway.id}:${networkId}:${token.address}`;
     if (this.requirementsCache.has(cacheKey)) {
       return this.requirementsCache.get(cacheKey)!;
     }
 
     const config: ResourceConfig = {
       scheme: gateway.paymentScheme || 'exact',
-      network: (gateway.paymentNetwork || 'eip155:84532') as `${string}:${string}`,
+      network: networkId as `${string}:${string}`,
       payTo: gateway.evmAddress as `0x${string}`,
-      // price: `$${gateway.defaultPricePerRequest}`, // Convert to x402 price format
       price: {
         amount: gateway.defaultPricePerRequest.toString(),
-        asset: 'eth',
+        asset: token.address,
+        extra: {
+          name: token.name,
+          version: 2,
+        },
       },
     };
 
@@ -134,7 +154,10 @@ export class X402Service {
    * Settle payment on-chain
    * Returns settlement result with transaction hash
    */
-  async settlePayment(paymentPayload: any, requirements: PaymentRequirements): Promise<any> {
+  async settlePayment(
+    paymentPayload: any,
+    requirements: PaymentRequirements,
+  ): Promise<SettleResponse> {
     try {
       const settleResult = await this.resourceServer.settlePayment(paymentPayload, requirements);
       console.log(`✅ Payment settled: ${settleResult.transaction}`);
@@ -149,6 +172,10 @@ export class X402Service {
    * Clear cached requirements for a gateway (e.g., after gateway update)
    */
   clearCache(gatewayId: string): void {
-    this.requirementsCache.delete(gatewayId);
+    for (const key of this.requirementsCache.keys()) {
+      if (key.startsWith(`${gatewayId}:`)) {
+        this.requirementsCache.delete(key);
+      }
+    }
   }
 }

@@ -12,33 +12,68 @@ import express from 'express';
 import { createWalletClient, http, publicActions } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
+import { PrismaClient } from '@prisma/client';
+
+export interface ChainAsset {
+  symbol: string;
+  address: string;
+  decimals: number;
+}
+
+export interface ChainConfig {
+  id: string; // eip155:8453
+  name: string;
+  nativeCurrency: string;
+  assets: {
+    [symbol: string]: ChainAsset;
+  };
+}
 
 dotenv.config();
 
-const configuration = {
-  'base-sepolia': {
-    assets: ['0x000'],
-  },
-  'mantle-sepolia': {
-    assets: ['eth', '0x000'],
-  },
-};
+const prisma = new PrismaClient();
 
 // Configuration
-const PORT = process.env.PORT || '4022';
+const PORT = process.env.FACILITATOR_PORT || '4022';
 
 // Validate required environment variables
 if (!process.env.EVM_PRIVATE_KEY) {
   console.error('❌ EVM_PRIVATE_KEY environment variable is required');
   process.exit(1);
 }
-
-if (!process.env.SVM_PRIVATE_KEY) {
-  console.error('❌ SVM_PRIVATE_KEY environment variable is required');
-  process.exit(1);
-}
-
 const main = async () => {
+  // Load Configuration from Database
+  console.log('🔄 Loading chain configuration from database...');
+  const chains = await prisma.chain.findMany({
+    include: { tokens: true },
+  });
+
+  const chainConfigs: Record<string, ChainConfig> = {};
+
+  if (chains.length === 0) {
+    console.warn('⚠️ No chains found in database! Facilitator may not work correctly.');
+  }
+
+  for (const chain of chains) {
+    const assets: Record<string, ChainAsset> = {};
+    for (const token of chain.tokens) {
+      assets[token.symbol] = {
+        symbol: token.symbol,
+        address: token.address,
+        decimals: token.decimals,
+      };
+    }
+
+    chainConfigs[chain.id] = {
+      id: chain.id,
+      name: chain.name,
+      nativeCurrency: chain.nativeCurrency,
+      assets,
+    };
+  }
+
+  console.log('✅ Loaded chain configuration:', Object.keys(chainConfigs).join(', '));
+
   // Initialize the EVM account from private key
   const evmAccount = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
   console.info(`EVM Facilitator account: ${evmAccount.address}`);
@@ -109,10 +144,10 @@ const main = async () => {
       console.log('Settle failure', context);
     });
 
-  // Register EVM and SVM schemes using the new register helpers
+  // Register EVM and SVM schemes using dynamic DB config
   registerExactEvmScheme(facilitator, {
     signer: evmSigner,
-    networks: 'eip155:5003',
+    networks: Object.keys(chainConfigs) as `${string}:${string}`[],
   });
 
   // Initialize Express app
@@ -122,8 +157,6 @@ const main = async () => {
   /**
    * POST /verify
    * Verify a payment against requirements
-   *
-   * Note: Payment tracking and bazaar discovery are handled by lifecycle hooks
    */
   app.post('/verify', async (req, res) => {
     try {
@@ -138,9 +171,6 @@ const main = async () => {
         });
       }
 
-      // Hooks will automatically:
-      // - Track verified payment (onAfterVerify)
-      // - Extract and catalog discovery info (onAfterVerify)
       const response: VerifyResponse = await facilitator.verify(
         paymentPayload,
         paymentRequirements,
@@ -158,8 +188,6 @@ const main = async () => {
   /**
    * POST /settle
    * Settle a payment on-chain
-   *
-   * Note: Verification validation and cleanup are handled by lifecycle hooks
    */
   app.post('/settle', async (req, res) => {
     try {
@@ -171,10 +199,6 @@ const main = async () => {
         });
       }
 
-      // Hooks will automatically:
-      // - Validate payment was verified (onBeforeSettle - will abort if not)
-      // - Check verification timeout (onBeforeSettle)
-      // - Clean up tracking (onAfterSettle / onSettleFailure)
       const response: SettleResponse = await facilitator.settle(
         paymentPayload as PaymentPayload,
         paymentRequirements as PaymentRequirements,
@@ -184,9 +208,7 @@ const main = async () => {
     } catch (error) {
       console.error('Settle error:', error);
 
-      // Check if this was an abort from hook
       if (error instanceof Error && error.message.includes('Settlement aborted:')) {
-        // Return a proper SettleResponse instead of 500 error
         return res.json({
           success: false,
           errorReason: error.message.replace('Settlement aborted: ', ''),
@@ -206,7 +228,9 @@ const main = async () => {
    */
   app.get('/supported', async (req, res) => {
     try {
+      console.log('Getting supported...');
       const response = facilitator.getSupported();
+      console.log(response);
       res.json(response);
     } catch (error) {
       console.error('Supported error:', error);
@@ -214,6 +238,14 @@ const main = async () => {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
+  });
+
+  /**
+   * GET /config
+   * Get chain configuration (assets, decimals, etc.) from DB
+   */
+  app.get('/config', (req, res) => {
+    res.json(chainConfigs);
   });
 
   // Start the server
