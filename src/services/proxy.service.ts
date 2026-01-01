@@ -17,6 +17,7 @@ export class ProxyService {
   }
 
   public async handleRequest(req: Request, res: Response, next: NextFunction) {
+    console.log('Received request', req);
     // Get hostname and strip port (e.g., "test-api.localhost:3030" -> "test-api.localhost")
     const rawHostname = req.get('host') || req.hostname;
     const hostname = rawHostname.split(':')[0];
