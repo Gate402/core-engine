@@ -118,6 +118,8 @@ model Token {
   symbol    String // e.g. "usdc"
   address   String // e.g. "0x..."
   decimals  Int
+  name      String? // EIP-712 name
+  version   String? // EIP-712 version
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
