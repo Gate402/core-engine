@@ -10,38 +10,46 @@ import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import { createProxyMiddleware } from './middleware/proxy.middleware';
 
-const app = express();
+const apiApp = express();
+const proxyApp = express();
 
-app.set('trust proxy', true); // Important for generic deployment/proxies
+apiApp.set('trust proxy', true);
+proxyApp.set('trust proxy', true);
 
-// Global Middleware
-app.use(cors());
-app.use(helmet());
-app.use(bodyParser.json());
+// API Middleware
+apiApp.use(cors());
+apiApp.use(helmet());
+apiApp.use(bodyParser.json());
 
 // API Routes (Prefix /api)
-// IMPORTANT: These MUST be before the proxy middleware to ensure they are reachable!
-app.use('/api/auth', authRoutes);
-app.use('/api/gateways', gatewayRoutes);
-app.use('/api/analytics', analyticsRoutes);
+apiApp.use('/api/auth', authRoutes);
+apiApp.use('/api/gateways', gatewayRoutes);
+apiApp.use('/api/analytics', analyticsRoutes);
 
-app.get('/health', (req, res) => {
+apiApp.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-const PORT = env.PORT || 3000;
+const PORT = env.API_PORT || 3000;
+const PROXY_PORT = env.PROXY_PORT || 3001;
 
-// Connect to DB and initialize x402, then start server
+// Connect to DB and initialize x402, then start servers
 connectDB().then(async () => {
   console.log('🔧 Initializing x402 service...');
   const x402Service = new X402Service();
   await x402Service.initialize();
 
-  // Proxy Middleware (applied after x402 initialization)
-  app.use(createProxyMiddleware(x402Service));
+  // Proxy Middleware (attached to proxyApp)
+  proxyApp.use(createProxyMiddleware(x402Service));
 
-  app.listen(PORT, () => {
-    console.log(`Gate402 Core Engine running on port ${PORT}`);
+  // Start Manager API
+  apiApp.listen(PORT, () => {
+    console.log(`Gate402 Manager API running on port ${PORT}`);
     console.log(`Environment: ${env.NODE_ENV}`);
+  });
+
+  // Start Proxy Server
+  proxyApp.listen(PROXY_PORT, () => {
+    console.log(`Gate402 Proxy Server running on port ${PROXY_PORT}`);
   });
 });
