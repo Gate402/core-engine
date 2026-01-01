@@ -98,7 +98,8 @@ export class AuthenticationService {
    * Requests an OTP for email login
    */
   public async requestOtp(email: string): Promise<void> {
-    const otp = crypto.randomInt(100000, 999999).toString();
+    // use default otp value since this is for prototyping only
+    const otp = process.env.DEFAULT_OTP_VALUE ?? crypto.randomInt(100000, 999999).toString();
     const key = `otp:${email}`;
 
     // Store OTP in Redis with 5 minutes expiration
