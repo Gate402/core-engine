@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "bun dist/src/index.js",
+    "start-facilitator": "bun dist/src/facilitator.js",
     "dev": "bun --watch src/index.ts",
+    "dev-facilitator": "bun --watch src/facilitator.ts",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write 'src/**/*.{ts,json}'",
     "test": "jest",
