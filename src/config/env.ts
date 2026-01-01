@@ -8,7 +8,6 @@ const envSchema = z.object({
   PORT: z.string().default('3000'),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
-  BASE_RPC_URL: z.string().url(),
   JWT_SECRET: z.string().min(8),
 });
 

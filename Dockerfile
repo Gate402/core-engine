@@ -57,6 +57,6 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node --version || exit 1
+  CMD bun --version || exit 1
 
-CMD ["node", "dist/src/index.js"]
+CMD ["bun", "dist/src/index.js"]
