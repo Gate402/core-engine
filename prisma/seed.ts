@@ -1,6 +1,40 @@
 import { PrismaClient } from '@prisma/client';
 import { generatePrivateKey } from 'viem/accounts';
-import { CHAIN_CONFIGS } from '../src/config/chains';
+
+// Initial Chain Configuration for Seeding
+const CHAIN_CONFIGS = {
+  // Base Sepolia (Testnet)
+  'eip155:84532': {
+    id: 'eip155:84532',
+    name: 'Base Sepolia',
+    nativeCurrency: 'eth',
+    assets: {
+      usdc: {
+        symbol: 'usdc',
+        address: '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
+        decimals: 6,
+        name: 'USD Coin',
+        version: '2',
+      },
+    },
+  },
+
+  // Mantle Sepolia (Testnet)
+  'eip155:5003': {
+    id: 'eip155:5003',
+    name: 'Mantle Sepolia',
+    nativeCurrency: 'mnt',
+    assets: {
+      mnt: {
+        symbol: 'GAToken',
+        address: '0x40240285082c1e7e8d4e62f253817381aa43f0fe',
+        decimals: 18,
+        name: 'GAToken',
+        version: '1',
+      },
+    },
+  },
+};
 
 const prisma = new PrismaClient();
 
@@ -34,12 +68,16 @@ async function main() {
         update: {
           address: asset.address,
           decimals: asset.decimals,
+          name: (asset as any).name,
+          version: (asset as any).version,
         },
         create: {
           chainId: chain.id,
           symbol: symbol,
           address: asset.address,
           decimals: asset.decimals,
+          name: (asset as any).name,
+          version: (asset as any).version,
         },
       });
     }
