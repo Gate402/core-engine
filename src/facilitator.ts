@@ -37,8 +37,8 @@ const prisma = new PrismaClient();
 const PORT = process.env.FACILITATOR_PORT || '4022';
 
 // Validate required environment variables
-if (!process.env.EVM_PRIVATE_KEY) {
-  console.error('❌ EVM_PRIVATE_KEY environment variable is required');
+if (!process.env.FACILITATOR_PRIVATE_KEY) {
+  console.error('❌ FACILITATOR_PRIVATE_KEY environment variable is required');
   process.exit(1);
 }
 const main = async () => {
@@ -75,7 +75,7 @@ const main = async () => {
   console.log('✅ Loaded chain configuration:', Object.keys(chainConfigs).join(', '));
 
   // Initialize the EVM account from private key
-  const evmAccount = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
+  const evmAccount = privateKeyToAccount(process.env.FACILITATOR_PRIVATE_KEY as `0x${string}`);
   console.info(`EVM Facilitator account: ${evmAccount.address}`);
 
   const viemClient = createWalletClient({
