@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base58 } from '@scure/base';
 import { x402Client } from '@x402/core/client';
 import {
   decodePaymentRequiredHeader,

@@ -14,6 +14,10 @@ model User {
   googleId String? @unique
   name     String?
 
+  // support sign in with ethereum
+  evmAddress String? @unique
+  nonce      String?
+
   // Subscription/Quota (for future freemium model)
   subscriptionTier   String   @default("free")
   subscriptionStatus String   @default("active")

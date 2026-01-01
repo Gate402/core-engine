@@ -61,4 +61,51 @@ export class AuthController {
       res.status(401).json({ error: error.message });
     }
   };
+
+  public getSiweNonce = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const schema = z.object({
+        address: z.string(),
+      });
+      const { address } = schema.parse(req.body);
+
+      const result = await this.authService.getNonce(address);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  public verifySiwe = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const schema = z.object({
+        message: z.string(),
+        signature: z.string(),
+      });
+      const { message, signature } = schema.parse(req.body);
+
+      const result = await this.authService.verifySiwe(message, signature);
+      res.json(result);
+    } catch (error: any) {
+      res.status(401).json({ error: error.message });
+    }
+  };
+
+  public updateProfile = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const schema = z.object({
+        email: z.string().email(),
+        name: z.string().min(1),
+      });
+      const { email, name } = schema.parse(req.body);
+      
+      // req.user is populated by authenticate middleware
+      const userId = (req as any).user.userId;
+
+      const result = await this.authService.updateProfile(userId, email, name);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
 }

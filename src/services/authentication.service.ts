@@ -5,6 +5,8 @@ import nodemailer from 'nodemailer';
 import Redis from 'ioredis';
 import crypto from 'crypto';
 import { getPrismaClient } from '../config/database';
+import { verifyMessage } from 'viem';
+import { nanoid } from 'nanoid';
 
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
@@ -155,6 +157,118 @@ export class AuthenticationService {
   }
 
   /**
+   * Generates or retrieves a nonce for an EVM address
+   */
+  public async getNonce(evmAddress: string): Promise<{ nonce: string }> {
+    const nonce = nanoid();
+
+    let user = await this.prisma.user.findUnique({
+      where: { id: evmAddress.toLowerCase() },
+    });
+
+    if (!user) {
+      // Create user if it doesn't exist, but only with evmAddress for now
+      // They will complete profile later if needed
+      // Check if email exists? No, email is unique. For SIWE, we might not have email yet.
+      // We need to handle the case where we don't have an email.
+      // However, the User model has `email String @unique`.
+      // If the schema requires email, we have a problem for pure SIWE users without email.
+      // Let's check schema: `email String @unique`.
+      // We must generate a placeholder email or change schema.
+      // Plan didn't catch this.
+      // Strategy: Generate a placeholder email: `wallet_ADDRESS@gate402.eth`
+      
+      const placeholderEmail = `${evmAddress.toLowerCase()}@noemail-gate402.eth`;
+      
+      // Check if this placeholder already exists (collision unlikely but possible if user manually set it)
+      const existingUser = await this.prisma.user.findUnique({ where: { email: placeholderEmail } });
+      if (existingUser) {
+          user = await this.prisma.user.update({
+              where: { id: existingUser.id },
+              data: { nonce }
+          });
+      } else {
+        user = await this.prisma.user.create({
+            data: {
+            email: placeholderEmail,
+            evmAddress: evmAddress.toLowerCase(),
+            nonce,
+            },
+        });
+      }
+    } else {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { nonce },
+      });
+    }
+
+    return { nonce: user.nonce! };
+  }
+
+  /**
+   * Verifies SIWE signature and returns tokens
+   */
+  public async verifySiwe(
+    message: string,
+    signature: string,
+  ): Promise<{ user: User; tokens: any }> {
+    // 1. Verify signature using viem
+    // We assume the message is the raw text signed
+    
+    // Very simple parsing to extract address - robust parsing would be better but keeping it simple as per plan
+    // SIWE message format usually contains "Ethereum address: 0x..."
+    // We will rely on the provided address in the message matching the recovered address.
+    
+
+    // Recover the address from the signature
+    const recoveredAddress = await import('viem').then(m => m.recoverMessageAddress({
+         message,
+         signature: signature as `0x${string}`,
+    }));
+    
+    // We expect the message to contain the address, but for now we trust the recovered address 
+    // satisfies the ownership if it matches a user with a valid nonce.
+    // Ideally we parse the message to ensure it is valid SIWE message.
+    
+    const valid = await verifyMessage({
+      address: recoveredAddress,
+      message,
+      signature: signature as `0x${string}`,
+    });
+
+    if (!valid) {
+      throw new Error('Invalid signature');
+    }
+    
+    // Check if address matches a user with the nonce
+    // We need to extract the nonce from the message to ensure it matches what we expect, 
+    // OR simply look up the user by address and check if the nonce is IN the message.
+    
+    const user = await this.prisma.user.findFirst({
+      where: { evmAddress: recoveredAddress.toLowerCase()},
+    });
+
+    if (!user || !user.nonce) {
+      throw new Error('User or nonce not found');
+    }
+
+    // Verify nonce is present in the message
+    if (!message.includes(user.nonce)) {
+      throw new Error('Nonce mismatch or not found in message');
+    }
+
+    // Rotate nonce
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { nonce: nanoid() },
+    });
+
+    const tokens = this.generateTokens(user);
+    return { user, tokens };
+  }
+
+  /**
    * Refreshes access token using refresh token
    */
   public async refreshAccessToken(
@@ -179,5 +293,31 @@ export class AuthenticationService {
     } catch (error) {
       throw new Error('Invalid refresh token');
     }
+  }
+
+  /**
+   * Updates user profile (email, name)
+   */
+  public async updateProfile(userId: string, email: string, name: string): Promise<{ user: User; tokens: any }> {
+    // Check if email is taken by another user
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser && existingUser.id !== userId) {
+      throw new Error('Email already in use');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        email,
+        name,
+      },
+    });
+
+    // Generate new tokens since email (part of payload) might have changed
+    const tokens = this.generateTokens(user);
+    return { user, tokens };
   }
 }
