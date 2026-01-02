@@ -34,5 +34,33 @@ POST {{baseUrl}}/refresh
 Content-Type: application/json
 
 {
-    "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+
+### SIWE Nonce
+# Get nonce for wallet address
+POST {{baseUrl}}/siwe/nonce
+Content-Type: application/json
+
+{
+    "address": "0x1234567890123456789012345678901234567890"
+}
+
+### SIWE Verify
+# Verify signature and login. Replace message and signature with real values.
+POST {{baseUrl}}/siwe/verify
+Content-Type: application/json
+
+{
+    "message": "gate402.com wants you to sign in with your Ethereum account:\n0x1234567890123456789012345678901234567890\n\nSign in with Ethereum to the app.\n\nURI: https://gate402.com\nVersion: 1\nChain ID: 1\nNonce: YOUR_NONCE_HERE\nIssued At: 2023-01-01T00:00:00.000Z",
+    "signature": "0x..."
+}
+
+### Update Profile
+# Requires Bearer token from login response - used to complete profile after SIWE
+POST {{baseUrl}}/siwe/complete-profile
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "email": "wallet-user@example.com",
+    "name": "Wallet User"
 }
