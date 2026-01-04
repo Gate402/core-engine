@@ -11,10 +11,10 @@ COPY package.json bun.lock ./
 RUN apt-get update && apt-get install -y python3 build-essential
 RUN bun install
 
-# Build stage - includes Prisma generation and TypeScript compilation
+# Build stage - includes Prisma generation, tsoa routes, and TypeScript compilation
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock tsconfig.json ./
+COPY package.json bun.lock tsconfig.json tsoa.json ./
 COPY prisma ./prisma
 COPY src ./src
 
@@ -45,6 +45,7 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy built application
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/build ./build
 COPY --from=build /app/package.json ./package.json
 
 # Create non-root user for security
