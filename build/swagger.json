@@ -7,6 +7,289 @@
 		"requestBodies": {},
 		"responses": {},
 		"schemas": {
+			"QuickCreateGatewayResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"subdomain": {
+						"type": "string"
+					},
+					"originUrl": {
+						"type": "string"
+					},
+					"defaultPricePerRequest": {
+						"type": "number",
+						"format": "double"
+					},
+					"acceptedNetworks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"secretToken": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"customDomain": {
+						"type": "string",
+						"nullable": true
+					},
+					"paymentScheme": {
+						"type": "string"
+					},
+					"paymentNetwork": {
+						"type": "string"
+					},
+					"evmAddress": {
+						"type": "string"
+					},
+					"userId": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"gatewayUrl": {
+						"type": "string",
+						"description": "Full gateway URL"
+					},
+					"testUrl": {
+						"type": "string",
+						"description": "Local test URL"
+					},
+					"network": {
+						"type": "string",
+						"description": "Payment network used"
+					},
+					"isTestnet": {
+						"type": "boolean",
+						"description": "Whether using testnet"
+					}
+				},
+				"required": [
+					"id",
+					"subdomain",
+					"originUrl",
+					"defaultPricePerRequest",
+					"acceptedNetworks",
+					"secretToken",
+					"status",
+					"customDomain",
+					"paymentScheme",
+					"paymentNetwork",
+					"evmAddress",
+					"userId",
+					"createdAt",
+					"updatedAt",
+					"gatewayUrl",
+					"testUrl",
+					"network",
+					"isTestnet"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ErrorResponse": {
+				"properties": {
+					"error": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"QuickCreateGatewayRequest": {
+				"properties": {
+					"originUrl": {
+						"type": "string",
+						"description": "Target origin URL to proxy to"
+					},
+					"pricePerRequest": {
+						"type": "number",
+						"format": "double",
+						"description": "Price per request in USD (e.g., 0.001)"
+					},
+					"evmAddress": {
+						"type": "string",
+						"description": "EVM address to receive payments"
+					}
+				},
+				"required": [
+					"originUrl",
+					"pricePerRequest",
+					"evmAddress"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GatewayResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"subdomain": {
+						"type": "string"
+					},
+					"originUrl": {
+						"type": "string"
+					},
+					"defaultPricePerRequest": {
+						"type": "number",
+						"format": "double"
+					},
+					"acceptedNetworks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"secretToken": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"customDomain": {
+						"type": "string",
+						"nullable": true
+					},
+					"paymentScheme": {
+						"type": "string"
+					},
+					"paymentNetwork": {
+						"type": "string"
+					},
+					"evmAddress": {
+						"type": "string"
+					},
+					"userId": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"subdomain",
+					"originUrl",
+					"defaultPricePerRequest",
+					"acceptedNetworks",
+					"secretToken",
+					"status",
+					"customDomain",
+					"paymentScheme",
+					"paymentNetwork",
+					"evmAddress",
+					"userId",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateGatewayRequest": {
+				"properties": {
+					"originUrl": {
+						"type": "string",
+						"description": "Target origin URL to proxy to"
+					},
+					"pricePerRequest": {
+						"type": "number",
+						"format": "double",
+						"description": "Price per request in USD (e.g., 0.001)"
+					},
+					"acceptedNetworks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array",
+						"description": "List of accepted payment networks (e.g., eip155:84532)"
+					},
+					"subdomain": {
+						"type": "string",
+						"description": "Subdomain for the gateway (e.g., \"myapi\")"
+					},
+					"evmAddress": {
+						"type": "string",
+						"description": "EVM address to receive payments"
+					},
+					"customDomain": {
+						"type": "string",
+						"description": "Optional custom domain"
+					},
+					"paymentScheme": {
+						"type": "string",
+						"description": "Payment scheme (exact, flexible)"
+					},
+					"paymentNetwork": {
+						"type": "string",
+						"description": "Primary payment network"
+					}
+				},
+				"required": [
+					"originUrl",
+					"pricePerRequest",
+					"acceptedNetworks",
+					"subdomain",
+					"evmAddress"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateGatewayRequest": {
+				"properties": {
+					"originUrl": {
+						"type": "string",
+						"description": "Target origin URL to proxy to"
+					},
+					"defaultPricePerRequest": {
+						"type": "number",
+						"format": "double",
+						"description": "Price per request in USD"
+					},
+					"status": {
+						"type": "string",
+						"description": "Gateway status (active, paused, deleted)"
+					},
+					"customDomain": {
+						"type": "string",
+						"nullable": true,
+						"description": "Custom domain"
+					},
+					"paymentScheme": {
+						"type": "string",
+						"description": "Payment scheme"
+					},
+					"paymentNetwork": {
+						"type": "string",
+						"description": "Primary payment network"
+					},
+					"evmAddress": {
+						"type": "string",
+						"description": "EVM address to receive payments"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
 			"UserResponse": {
 				"properties": {
 					"id": {
@@ -68,18 +351,6 @@
 				"required": [
 					"user",
 					"tokens"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"ErrorResponse": {
-				"properties": {
-					"error": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"error"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -213,6 +484,46 @@
 				],
 				"type": "object",
 				"additionalProperties": false
+			},
+			"GatewayOverviewResponse": {
+				"properties": {
+					"totalRequests": {
+						"description": "Total number of requests"
+					},
+					"successfulPayments": {
+						"description": "Number of successful payments"
+					},
+					"totalRevenue": {
+						"description": "Total revenue earned"
+					}
+				},
+				"required": [
+					"totalRequests",
+					"successfulPayments",
+					"totalRevenue"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TopPayerResponse": {
+				"properties": {
+					"wallet": {
+						"type": "string",
+						"description": "Wallet address"
+					},
+					"totalSpent": {
+						"type": "number",
+						"format": "double",
+						"nullable": true,
+						"description": "Total amount spent"
+					}
+				},
+				"required": [
+					"wallet",
+					"totalSpent"
+				],
+				"type": "object",
+				"additionalProperties": false
 			}
 		},
 		"securitySchemes": {
@@ -232,6 +543,311 @@
 		"contact": {}
 	},
 	"paths": {
+		"/gateways/quick-create": {
+			"post": {
+				"operationId": "QuickCreate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/QuickCreateGatewayResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Quick-create a gateway with auto-generated subdomain",
+				"summary": "Quick Create Gateway",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/QuickCreateGatewayRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/gateways": {
+			"post": {
+				"operationId": "CreateGateway",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GatewayResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new gateway with custom configuration",
+				"summary": "Create Gateway",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateGatewayRequest"
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "GetGatewaysByUser",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/GatewayResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all gateways for the authenticated user",
+				"summary": "List User Gateways",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/gateways/{gatewayId}": {
+			"get": {
+				"operationId": "GetGatewayById",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GatewayResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get a specific gateway by ID",
+				"summary": "Get Gateway",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"patch": {
+				"operationId": "UpdateGateway",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GatewayResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Update a gateway",
+				"summary": "Update Gateway",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateGatewayRequest"
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "DeleteGateway",
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a gateway (soft delete)",
+				"summary": "Delete Gateway",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
 		"/auth/google": {
 			"post": {
 				"operationId": "GoogleLogin",
@@ -564,6 +1180,123 @@
 						}
 					}
 				}
+			}
+		},
+		"/analytics/overview": {
+			"get": {
+				"operationId": "GetOverview",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GatewayOverviewResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get overview statistics for a gateway",
+				"summary": "Gateway Overview",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/top-payers": {
+			"get": {
+				"operationId": "GetTopPayers",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/TopPayerResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get top payers for a gateway",
+				"summary": "Top Payers",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
 			}
 		}
 	},

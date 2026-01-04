@@ -8,8 +8,6 @@ import fs from 'fs';
 import { env } from './config/env';
 import { connectDB } from './config/database';
 import { X402Service } from './services/x402.service';
-import gatewayRoutes from './routes/gateway.routes';
-import analyticsRoutes from './routes/analytics.routes';
 import { createProxyMiddleware } from './middleware/proxy.middleware';
 import { RegisterRoutes } from './routes/generated/routes';
 
@@ -29,12 +27,8 @@ const swaggerPath = path.join(process.cwd(), 'build', 'swagger.json');
 const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, 'utf-8'));
 apiApp.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// tsoa generated routes (includes /auth)
+// tsoa generated routes (auth, gateways, analytics)
 RegisterRoutes(apiApp);
-
-// Additional manual routes
-apiApp.use('/api/gateways', gatewayRoutes);
-apiApp.use('/api/analytics', analyticsRoutes);
 
 apiApp.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
