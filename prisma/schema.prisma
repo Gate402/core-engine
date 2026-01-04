@@ -43,43 +43,22 @@ model Gateway {
   secretToken  String  @unique
 
   // Renamed for route future-proofing
-  defaultPricePerRequest Decimal @db.Decimal(10, 6)
+  // Stores user-facing price (e.g., "0.1" for 0.1 USDC)
+  defaultPricePerRequest String
+  defaultToken           String? // Token ID reference
 
-  acceptedNetworks String[]
-  status           String   @default("active")
-  paymentScheme    String   @default("exact")
-  paymentNetwork   String   @default("eip155:84532") // Base Sepolia
-  evmAddress       String // Payment recipient (API provider wallet)
+  status         String @default("active")
+  paymentScheme  String @default("exact")
+  paymentNetwork String @default("eip155:84532") // Base Sepolia
+  evmAddress     String // Payment recipient (API provider wallet)
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  payments    Payment[]
   requestLogs RequestLog[]
 
   @@index([subdomain])
   @@index([customDomain])
   @@index([userId])
-  @@index([status])
-}
-
-model Payment {
-  id              String   @id @default(uuid())
-  gatewayId       String?
-  gateway         Gateway? @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
-  amount          Decimal  @db.Decimal(20, 6)
-  network         String
-  transactionHash String   @unique
-  fromWallet      String // Consumer wallet
-  toWallet        String // Gateway.evmAddress (provider wallet)
-  blockNumber     BigInt?
-  status          String   @default("confirmed")
-  paymentProof    String   @db.Text
-  createdAt       DateTime @default(now())
-
-  @@index([gatewayId])
-  @@index([transactionHash])
-  @@index([fromWallet])
-  @@index([createdAt])
   @@index([status])
 }
 

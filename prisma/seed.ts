@@ -104,7 +104,7 @@ async function main() {
     where: { subdomain: 'test-api' },
     update: {
       originUrl: 'http://localhost:4021/weather',
-      defaultPricePerRequest: 0.001,
+      defaultPricePerRequest: '0.001',
       paymentNetwork: 'eip155:84532',
       evmAddress: testEvmAddress,
     },
@@ -112,8 +112,7 @@ async function main() {
       userId: user.id,
       subdomain: 'test-api',
       originUrl: 'http://localhost:4021/weather',
-      defaultPricePerRequest: 0.001,
-      acceptedNetworks: ['eip155:84532'],
+      defaultPricePerRequest: '0.001',
       status: 'active',
       secretToken: secretToken,
       paymentScheme: 'exact',
