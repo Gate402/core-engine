@@ -9,8 +9,8 @@ export class GatewayService {
     userId: string;
     subdomain: string;
     originUrl: string;
-    defaultPricePerRequest: number;
-    acceptedNetworks: string[];
+    defaultPricePerRequest: string;
+    defaultToken?: string;
     customDomain?: string;
     paymentScheme?: string;
     paymentNetwork?: string;
@@ -29,7 +29,17 @@ export class GatewayService {
       if (existingCustom) throw new Error('Custom domain already linked');
     }
 
-    // 2. Create Gateway
+    // 2. Validate token if provided
+    if (data.defaultToken) {
+      const tokenExists = await this.prisma.token.findUnique({
+        where: { id: data.defaultToken },
+      });
+      if (!tokenExists) {
+        throw new Error(`Token with ID ${data.defaultToken} does not exist`);
+      }
+    }
+
+    // 3. Create Gateway
     const secretToken = generateSecretToken();
     const gateway = await this.prisma.gateway.create({
       data: {
@@ -37,7 +47,7 @@ export class GatewayService {
         subdomain: data.subdomain,
         originUrl: data.originUrl,
         defaultPricePerRequest: data.defaultPricePerRequest,
-        acceptedNetworks: data.acceptedNetworks,
+        defaultToken: data.defaultToken,
         secretToken,
         customDomain: data.customDomain,
         paymentScheme: data.paymentScheme || 'exact',
@@ -64,7 +74,8 @@ export class GatewayService {
     id: string,
     data: Partial<{
       originUrl: string;
-      defaultPricePerRequest: number;
+      defaultPricePerRequest: string;
+      defaultToken: string | null;
       status: string;
       customDomain: string | null;
       paymentScheme: string;
@@ -72,6 +83,15 @@ export class GatewayService {
       evmAddress: string;
     }>,
   ) {
+    // Validate token if being updated
+    if (data.defaultToken) {
+      const tokenExists = await this.prisma.token.findUnique({
+        where: { id: data.defaultToken },
+      });
+      if (!tokenExists) {
+        throw new Error(`Token with ID ${data.defaultToken} does not exist`);
+      }
+    }
     const gateway = await this.prisma.gateway.update({
       where: { id },
       data,

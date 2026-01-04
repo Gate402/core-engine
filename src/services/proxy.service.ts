@@ -141,89 +141,50 @@ export class ProxyService {
     console.log('✅ Payment verified successfully');
     logData.paymentValid = true;
 
-    // Store original methods for proxy stream interception
-    const originalEnd = res.end.bind(res);
-    const originalWrite = res.write.bind(res);
-    const originalJson = res.json.bind(res);
+    // 8. Settle payment BEFORE proxying to avoid header conflicts
+    console.log('💰 Settling payment on-chain...');
 
-    let settlementDone = false;
+    try {
+      const settleResult = await this.x402Service.settlePayment(
+        verifyResult.paymentPayload,
+        requirements,
+      );
+      console.log({ settleResult });
 
-    // Helper to send error bypassing overrides
-    const sendErrorResponse = (statusCode: number, body: any) => {
-      if (res.headersSent) return;
-      res.statusCode = statusCode;
-      res.setHeader('Content-Type', 'application/json');
-      const content = JSON.stringify(body);
-      res.setHeader('Content-Length', Buffer.byteLength(content));
-      originalEnd(content);
-    };
+      if (!settleResult.success) {
+        console.log('❌ Settlement failed: No result');
 
-    // 8. Intercept response to add settlement
-    const settleAndRespond = async (): Promise<void> => {
-      if (settlementDone) return;
-      settlementDone = true;
+        this.analyticsService.logRequest({
+          ...logData,
+          statusCode: 502,
+          durationMs: Date.now() - startTime,
+        });
 
-      console.log('💰 Settling payment on-chain...');
-
-      try {
-        const settleResult = await this.x402Service.settlePayment(
-          verifyResult.paymentPayload,
-          requirements,
-        );
-        if (!settleResult.success) {
-          console.log('❌ Settlement failed: No result');
-          sendErrorResponse(502, {
-            error: 'Payment settlement failed',
-            details: settleResult,
-          });
-          throw new Error('Settlement failed');
-        }
-        console.log({ settleResult });
-
-        // Add PAYMENT-RESPONSE header (v2 protocol)
-        const settlementHeader = Buffer.from(JSON.stringify(settleResult)).toString('base64');
-        res.set('PAYMENT-RESPONSE', settlementHeader);
-
-        console.log(`✅ Payment settled: ${settleResult.transaction}`);
-      } catch (error) {
-        console.error(`❌ Settlement failed: ${error}`);
-        sendErrorResponse(502, {
+        return res.status(502).json({
           error: 'Payment settlement failed',
-          details: error instanceof Error ? error.message : String(error),
+          details: settleResult,
         });
-        throw error;
       }
-    };
 
-    const settlePromise = settleAndRespond();
+      // Add PAYMENT-RESPONSE header (v2 protocol)
+      const settlementHeader = Buffer.from(JSON.stringify(settleResult)).toString('base64');
+      res.set('PAYMENT-RESPONSE', settlementHeader);
 
-    res.write = function (
-      chunk: any,
-      encoding?: BufferEncoding | ((error: Error | null | undefined) => void),
-      cb?: (error: Error | null | undefined) => void,
-    ): boolean {
-      // @ts-ignore
-      settlePromise
-        .then(() => originalWrite(chunk, encoding as any, cb))
-        .catch(() => {
-          // Settlement failed, response already sent, do nothing
-        });
-      return true;
-    };
+      console.log(`✅ Payment settled: ${settleResult.transaction}`);
+    } catch (error) {
+      console.error(`❌ Settlement failed: ${error}`);
 
-    res.end = function (
-      chunk?: any,
-      encoding?: BufferEncoding | (() => void),
-      cb?: () => void,
-    ): Response {
-      // @ts-ignore
-      settlePromise
-        .then(() => originalEnd(chunk, encoding as any, cb))
-        .catch(() => {
-          // Settlement failed, response already sent, do nothing
-        });
-      return this;
-    };
+      this.analyticsService.logRequest({
+        ...logData,
+        statusCode: 502,
+        durationMs: Date.now() - startTime,
+      });
+
+      return res.status(502).json({
+        error: 'Payment settlement failed',
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     // 9. Proxy Request to origin
     const proxy = createProxyMiddleware({

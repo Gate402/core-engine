@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import { createWalletClient, http, publicActions } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { baseSepolia, mantleSepoliaTestnet } from 'viem/chains';
 import { PrismaClient } from '@prisma/client';
 
 export interface ChainAsset {
@@ -80,7 +80,7 @@ const main = async () => {
 
   const viemClient = createWalletClient({
     account: evmAccount,
-    chain: baseSepolia,
+    chain: mantleSepoliaTestnet,
     transport: http(),
   }).extend(publicActions);
 

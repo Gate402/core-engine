@@ -41,8 +41,7 @@ export class GatewayController {
         userId,
         subdomain,
         originUrl,
-        defaultPricePerRequest: Number(pricePerRequest),
-        acceptedNetworks: [paymentNetwork],
+        defaultPricePerRequest: pricePerRequest,
         paymentScheme: 'exact',
         paymentNetwork,
         evmAddress,
@@ -72,7 +71,6 @@ export class GatewayController {
       const {
         originUrl,
         pricePerRequest,
-        acceptedNetworks,
         customDomain,
         subdomain,
         paymentScheme,
@@ -85,10 +83,9 @@ export class GatewayController {
       }
 
       // Basic validation
-      if (!originUrl || !pricePerRequest || !acceptedNetworks || !subdomain || !evmAddress) {
+      if (!originUrl || !pricePerRequest || !subdomain || !evmAddress) {
         return res.status(400).json({
-          error:
-            'Missing required fields (originUrl, pricePerRequest, acceptedNetworks, subdomain, evmAddress)',
+          error: 'Missing required fields (originUrl, pricePerRequest, subdomain, evmAddress)',
         });
       }
 
@@ -100,8 +97,7 @@ export class GatewayController {
         userId,
         subdomain,
         originUrl,
-        defaultPricePerRequest: Number(pricePerRequest),
-        acceptedNetworks,
+        defaultPricePerRequest: pricePerRequest,
         customDomain,
         paymentScheme,
         paymentNetwork,

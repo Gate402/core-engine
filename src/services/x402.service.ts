@@ -54,23 +54,36 @@ export class X402Service {
    */
   async buildPaymentRequirements(gateway: {
     id: string;
-    defaultPricePerRequest: number;
+    defaultPricePerRequest: string;
+    defaultToken?: string | null;
     paymentScheme?: string;
     paymentNetwork?: string;
     evmAddress?: string;
   }): Promise<PaymentRequirements> {
     const networkId = (gateway.paymentNetwork || 'eip155:84532') as string;
-    const chain = await this.prisma.chain.findUnique({
-      where: { id: networkId },
-      include: { tokens: true },
-    });
-    if (!chain) {
-      throw new Error(`Chain ${networkId} not found`);
+
+    // Fetch token by defaultToken ID if provided, otherwise fallback to first token
+    let token;
+    if (gateway.defaultToken) {
+      token = await this.prisma.token.findUnique({
+        where: { id: gateway.defaultToken },
+      });
+      if (!token) {
+        throw new Error(`Token ${gateway.defaultToken} not found`);
+      }
+    } else {
+      const chain = await this.prisma.chain.findUnique({
+        where: { id: networkId },
+        include: { tokens: true },
+      });
+      if (!chain) {
+        throw new Error(`Chain ${networkId} not found`);
+      }
+      if (chain.tokens.length === 0) {
+        throw new Error(`Chain ${networkId} has no tokens`);
+      }
+      token = chain.tokens[0];
     }
-    if (chain.tokens.length === 0) {
-      throw new Error(`Chain ${networkId} has no tokens`);
-    }
-    const token = chain.tokens[0];
 
     // Check cache first - now using gateway ID, network, and asset symbol
     const cacheKey = `${gateway.id}:${networkId}:${token.address}`;
@@ -78,12 +91,20 @@ export class X402Service {
       return this.requirementsCache.get(cacheKey)!;
     }
 
+    // Calculate amount with decimals
+    // If user sets price as "0.1" USDC (6 decimals), amount = 0.1 * 10^6 = 100000
+    const priceFloat = parseFloat(gateway.defaultPricePerRequest);
+    if (isNaN(priceFloat)) {
+      throw new Error(`Invalid price format: ${gateway.defaultPricePerRequest}`);
+    }
+    const amount = BigInt(Math.floor(priceFloat * Math.pow(10, token.decimals))).toString();
+
     const config: ResourceConfig = {
       scheme: gateway.paymentScheme || 'exact',
       network: networkId as `${string}:${string}`,
       payTo: gateway.evmAddress as `0x${string}`,
       price: {
-        amount: gateway.defaultPricePerRequest.toString(),
+        amount: amount,
         asset: token.address,
         extra: {
           name: token.name,

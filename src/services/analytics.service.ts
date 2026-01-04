@@ -28,49 +28,4 @@ export class AnalyticsService {
       console.error('Failed to log request:', err);
     }
   }
-
-  async getGatewayOverview(gatewayId: string) {
-    // Basic stats
-    const totalRequests = await this.prisma.requestLog.count({
-      where: { gatewayId },
-    });
-
-    const successfulPayments = await this.prisma.payment.count({
-      where: { gatewayId, status: 'confirmed' },
-    });
-
-    const revenue = await this.prisma.payment.aggregate({
-      where: { gatewayId, status: 'confirmed' },
-      _sum: {
-        amount: true,
-      },
-    });
-
-    return {
-      totalRequests,
-      successfulPayments,
-      totalRevenue: revenue._sum.amount || 0,
-    };
-  }
-
-  async getTopPayers(gatewayId: string, limit = 10) {
-    const topPayers = await this.prisma.payment.groupBy({
-      by: ['fromWallet'],
-      where: { gatewayId, status: 'confirmed' },
-      _sum: {
-        amount: true,
-      },
-      orderBy: {
-        _sum: {
-          amount: 'desc',
-        },
-      },
-      take: limit,
-    });
-
-    return topPayers.map((p) => ({
-      wallet: p.fromWallet,
-      totalSpent: p._sum.amount,
-    }));
-  }
 }
