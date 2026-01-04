@@ -1,0 +1,575 @@
+{
+	"openapi": "3.0.0",
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"UserResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string",
+						"nullable": true
+					},
+					"evmAddress": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"email",
+					"name",
+					"evmAddress",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AuthTokens": {
+				"properties": {
+					"accessToken": {
+						"type": "string",
+						"description": "JWT access token (15 min expiry)"
+					},
+					"refreshToken": {
+						"type": "string",
+						"description": "JWT refresh token (7 day expiry)"
+					}
+				},
+				"required": [
+					"accessToken",
+					"refreshToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AuthResponse": {
+				"properties": {
+					"user": {
+						"$ref": "#/components/schemas/UserResponse"
+					},
+					"tokens": {
+						"$ref": "#/components/schemas/AuthTokens"
+					}
+				},
+				"required": [
+					"user",
+					"tokens"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ErrorResponse": {
+				"properties": {
+					"error": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GoogleLoginRequest": {
+				"properties": {
+					"token": {
+						"type": "string",
+						"description": "Google OAuth ID token"
+					}
+				},
+				"required": [
+					"token"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"MessageResponse": {
+				"properties": {
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"OtpRequestBody": {
+				"properties": {
+					"email": {
+						"type": "string",
+						"description": "User's email address"
+					}
+				},
+				"required": [
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"OtpVerifyRequest": {
+				"properties": {
+					"email": {
+						"type": "string",
+						"description": "User's email address"
+					},
+					"otp": {
+						"type": "string",
+						"description": "6-digit OTP code"
+					}
+				},
+				"required": [
+					"email",
+					"otp"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RefreshTokenRequest": {
+				"properties": {
+					"refreshToken": {
+						"type": "string",
+						"description": "JWT refresh token"
+					}
+				},
+				"required": [
+					"refreshToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"NonceResponse": {
+				"properties": {
+					"nonce": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"nonce"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SiweNonceRequest": {
+				"properties": {
+					"address": {
+						"type": "string",
+						"description": "Ethereum wallet address"
+					}
+				},
+				"required": [
+					"address"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SiweVerifyRequest": {
+				"properties": {
+					"message": {
+						"type": "string",
+						"description": "SIWE message that was signed"
+					},
+					"signature": {
+						"type": "string",
+						"description": "Wallet signature of the message"
+					}
+				},
+				"required": [
+					"message",
+					"signature"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateProfileRequest": {
+				"properties": {
+					"email": {
+						"type": "string",
+						"description": "New email address"
+					},
+					"name": {
+						"type": "string",
+						"description": "User's display name"
+					}
+				},
+				"required": [
+					"email",
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			}
+		},
+		"securitySchemes": {
+			"jwt": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT"
+			}
+		}
+	},
+	"info": {
+		"title": "core-engine",
+		"version": "1.0.0",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {}
+	},
+	"paths": {
+		"/auth/google": {
+			"post": {
+				"operationId": "GoogleLogin",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Authenticate using Google OAuth token",
+				"summary": "Google OAuth Login",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GoogleLoginRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/otp/request": {
+			"post": {
+				"operationId": "RequestOtp",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MessageResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Request OTP to be sent to email",
+				"summary": "Request OTP",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OtpRequestBody"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/otp/verify": {
+			"post": {
+				"operationId": "VerifyOtp",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Verify OTP and get authentication tokens",
+				"summary": "Verify OTP",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OtpVerifyRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/refresh": {
+			"post": {
+				"operationId": "RefreshToken",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"refreshToken": {
+											"type": "string"
+										},
+										"accessToken": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"refreshToken",
+										"accessToken"
+									],
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Refresh access token using refresh token",
+				"summary": "Refresh Token",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RefreshTokenRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/siwe/nonce": {
+			"post": {
+				"operationId": "GetSiweNonce",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NonceResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get nonce for SIWE (Sign-In With Ethereum) authentication",
+				"summary": "Get SIWE Nonce",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SiweNonceRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/siwe/verify": {
+			"post": {
+				"operationId": "VerifySiwe",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Verify SIWE signature and get authentication tokens",
+				"summary": "Verify SIWE Signature",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SiweVerifyRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/siwe/complete-profile": {
+			"post": {
+				"operationId": "UpdateProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Update user profile (requires authentication)",
+				"summary": "Update Profile",
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateProfileRequest"
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/"
+		}
+	]
+}

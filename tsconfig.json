@@ -7,6 +7,8 @@
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,6 +16,14 @@
     "allowJs": true,
     "downlevelIteration": true
   },
-  "include": ["src/**/*", "scripts/**/*", "prisma/seed.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "prisma/seed.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
 }

@@ -2,13 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import bodyParser from 'body-parser';
+import swaggerUi from 'swagger-ui-express';
+import path from 'path';
+import fs from 'fs';
 import { env } from './config/env';
 import { connectDB } from './config/database';
 import { X402Service } from './services/x402.service';
 import gatewayRoutes from './routes/gateway.routes';
-import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import { createProxyMiddleware } from './middleware/proxy.middleware';
+import { RegisterRoutes } from './routes/generated/routes';
 
 const apiApp = express();
 const proxyApp = express();
@@ -21,8 +24,15 @@ apiApp.use(cors());
 apiApp.use(helmet());
 apiApp.use(bodyParser.json());
 
-// API Routes (Prefix /api)
-apiApp.use('/api/auth', authRoutes);
+// Swagger UI - resolve from project root (works in dev and production)
+const swaggerPath = path.join(process.cwd(), 'build', 'swagger.json');
+const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, 'utf-8'));
+apiApp.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// tsoa generated routes (includes /auth)
+RegisterRoutes(apiApp);
+
+// Additional manual routes
 apiApp.use('/api/gateways', gatewayRoutes);
 apiApp.use('/api/analytics', analyticsRoutes);
 
