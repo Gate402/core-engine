@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only
-COPY package.json bun.lock ./
+COPY package.json bun.lock bun.lockb ./
 RUN bun install --production
 
 # Copy Prisma schema, migrations, and generated client
