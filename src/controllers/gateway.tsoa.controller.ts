@@ -48,7 +48,7 @@ export class GatewayTsoaController extends Controller {
   @Response<ErrorResponse>(401, 'Unauthorized')
   public async quickCreate(
     @Request() req: ExpressRequest,
-    @Body() body: QuickCreateGatewayRequest
+    @Body() body: QuickCreateGatewayRequest,
   ): Promise<QuickCreateGatewayResponse> {
     const userId = (req as any).user.userId;
 
@@ -70,8 +70,7 @@ export class GatewayTsoaController extends Controller {
         userId,
         subdomain,
         originUrl: body.originUrl,
-        defaultPricePerRequest: Number(body.pricePerRequest),
-        acceptedNetworks: [paymentNetwork],
+        defaultPricePerRequest: body.pricePerRequest.toString(),
         paymentScheme: 'exact',
         paymentNetwork,
         evmAddress: body.evmAddress,
@@ -104,13 +103,21 @@ export class GatewayTsoaController extends Controller {
   @Response<ErrorResponse>(401, 'Unauthorized')
   public async createGateway(
     @Request() req: ExpressRequest,
-    @Body() body: CreateGatewayRequest
+    @Body() body: CreateGatewayRequest,
   ): Promise<GatewayResponse> {
     const userId = (req as any).user.userId;
 
-    if (!body.originUrl || !body.pricePerRequest || !body.acceptedNetworks || !body.subdomain || !body.evmAddress) {
+    if (
+      !body.originUrl ||
+      !body.pricePerRequest ||
+      !body.acceptedNetworks ||
+      !body.subdomain ||
+      !body.evmAddress
+    ) {
       this.setStatus(400);
-      throw new Error('Missing required fields (originUrl, pricePerRequest, acceptedNetworks, subdomain, evmAddress)');
+      throw new Error(
+        'Missing required fields (originUrl, pricePerRequest, acceptedNetworks, subdomain, evmAddress)',
+      );
     }
 
     if (!isValidSubdomain(body.subdomain)) {
@@ -122,8 +129,7 @@ export class GatewayTsoaController extends Controller {
       userId,
       subdomain: body.subdomain,
       originUrl: body.originUrl,
-      defaultPricePerRequest: Number(body.pricePerRequest),
-      acceptedNetworks: body.acceptedNetworks,
+      defaultPricePerRequest: body.pricePerRequest.toString(),
       customDomain: body.customDomain,
       paymentScheme: body.paymentScheme,
       paymentNetwork: body.paymentNetwork,
@@ -140,9 +146,7 @@ export class GatewayTsoaController extends Controller {
    */
   @Get()
   @Response<ErrorResponse>(401, 'Unauthorized')
-  public async getGatewaysByUser(
-    @Request() req: ExpressRequest
-  ): Promise<GatewayResponse[]> {
+  public async getGatewaysByUser(@Request() req: ExpressRequest): Promise<GatewayResponse[]> {
     const userId = (req as any).user.userId;
     const gateways = await this.gatewayService.getGatewaysByUser(userId);
     return gateways.map(toGatewayResponse);
@@ -154,9 +158,7 @@ export class GatewayTsoaController extends Controller {
    */
   @Get('{gatewayId}')
   @Response<ErrorResponse>(404, 'Not Found')
-  public async getGatewayById(
-    @Path() gatewayId: string
-  ): Promise<GatewayResponse> {
+  public async getGatewayById(@Path() gatewayId: string): Promise<GatewayResponse> {
     const gateway = await this.gatewayService.getGatewayById(gatewayId);
     if (!gateway) {
       this.setStatus(404);
@@ -174,7 +176,7 @@ export class GatewayTsoaController extends Controller {
   @Response<ErrorResponse>(404, 'Not Found')
   public async updateGateway(
     @Path() gatewayId: string,
-    @Body() body: UpdateGatewayRequest
+    @Body() body: UpdateGatewayRequest,
   ): Promise<GatewayResponse> {
     // TODO: Verify ownership
     const gateway = await this.gatewayService.updateGateway(gatewayId, body);
@@ -187,9 +189,7 @@ export class GatewayTsoaController extends Controller {
    */
   @Delete('{gatewayId}')
   @Response<ErrorResponse>(404, 'Not Found')
-  public async deleteGateway(
-    @Path() gatewayId: string
-  ): Promise<void> {
+  public async deleteGateway(@Path() gatewayId: string): Promise<void> {
     // TODO: Verify ownership
     await this.gatewayService.deleteGateway(gatewayId);
     this.setStatus(204);

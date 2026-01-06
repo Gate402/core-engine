@@ -32,7 +32,7 @@ export interface UpdateGatewayRequest {
   /** Target origin URL to proxy to */
   originUrl?: string;
   /** Price per request in USD */
-  defaultPricePerRequest?: number;
+  defaultPricePerRequest?: string;
   /** Gateway status (active, paused, deleted) */
   status?: string;
   /** Custom domain */
