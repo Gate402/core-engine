@@ -106,16 +106,20 @@ const main = async () => {
       signature: `0x${string}`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) => viemClient.verifyTypedData(args as any),
-    writeContract: (args: {
+    writeContract: async (args: {
       address: `0x${string}`;
       abi: readonly unknown[];
       functionName: string;
       args: readonly unknown[];
-    }) =>
-      viemClient.writeContract({
+    }) => {
+      const hash = await viemClient.writeContract({
         ...args,
         args: args.args || [],
-      }),
+      });
+      console.log({ hash });
+
+      return hash;
+    },
     sendTransaction: (args: { to: `0x${string}`; data: `0x${string}` }) =>
       viemClient.sendTransaction(args),
     waitForTransactionReceipt: (args: { hash: `0x${string}` }) =>

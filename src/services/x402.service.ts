@@ -108,7 +108,7 @@ export class X402Service {
         asset: token.address,
         extra: {
           name: token.name,
-          version: 2,
+          version: token.version,
         },
       },
     };

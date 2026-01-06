@@ -11,7 +11,8 @@ const analyticsController = new AnalyticsController(analyticsService);
 router.use(authenticate);
 
 // Routes
-router.get('/overview', analyticsController.getOverview);
-router.get('/top-payers', analyticsController.getTopPayers);
+// Legacy analytics routes removed - Payment model no longer exists
+// router.get('/overview', analyticsController.getOverview);
+// router.get('/top-payers', analyticsController.getTopPayers);
 
 export default router;

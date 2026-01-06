@@ -8,6 +8,7 @@ const CHAIN_CONFIGS = {
     id: 'eip155:84532',
     name: 'Base Sepolia',
     nativeCurrency: 'eth',
+    rpcUrl: 'https://sepolia.base.org',
     assets: {
       usdc: {
         symbol: 'usdc',
@@ -24,6 +25,7 @@ const CHAIN_CONFIGS = {
     id: 'eip155:5003',
     name: 'Mantle Sepolia',
     nativeCurrency: 'mnt',
+    rpcUrl: 'https://rpc.sepolia.mantle.xyz',
     assets: {
       mnt: {
         symbol: 'GAToken',
@@ -48,11 +50,13 @@ async function main() {
       update: {
         name: config.name,
         nativeCurrency: config.nativeCurrency,
+        rpcUrl: (config as any).rpcUrl,
       },
       create: {
         id: chainId,
         name: config.name,
         nativeCurrency: config.nativeCurrency,
+        rpcUrl: (config as any).rpcUrl,
       },
     });
     console.log(`✅ Chain synced: ${chain.name} (${chain.id})`);

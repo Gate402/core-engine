@@ -17,7 +17,7 @@ export class ProxyService {
   }
 
   public async handleRequest(req: Request, res: Response, next: NextFunction) {
-    console.log('Received request', req);
+    // console.log('Received request', req);
     // Get hostname and strip port (e.g., "test-api.localhost:3030" -> "test-api.localhost")
     const rawHostname = req.get('host') || req.hostname;
     const hostname = rawHostname.split(':')[0];
@@ -186,6 +186,8 @@ export class ProxyService {
       });
     }
 
+    console.log('Starting proxying');
+    console.log('target: ', gateway);
     // 9. Proxy Request to origin
     const proxy = createProxyMiddleware({
       target: gateway.originUrl,
@@ -206,6 +208,7 @@ export class ProxyService {
       },
       on: {
         proxyReq: (proxyReq, req: any, res) => {
+          console.log('inside proxy req');
           // 1. Preserve original request method and path
           proxyReq.path = req.originalUrl || req.url;
 
@@ -262,6 +265,7 @@ export class ProxyService {
           }
         },
         proxyRes: (proxyRes, req: any, res) => {
+          console.log('inside proxyRes');
           // 1. Add proxy metadata headers
           res.setHeader('X-Proxied-By', 'Gate402');
           res.setHeader('X-Gateway-ID', gateway.id);
