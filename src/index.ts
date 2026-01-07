@@ -47,6 +47,14 @@ apiApp.use(
       });
     }
 
+    // Handle HttpError (with status code)
+    if (err?.statusCode) {
+      console.error(`HttpError [${err.statusCode}]: ${err.message}`);
+      return res.status(err.statusCode).json({
+        message: err.message,
+      });
+    }
+
     // Handle other errors
     if (err instanceof Error) {
       console.error(`Error: ${err.message}`);
