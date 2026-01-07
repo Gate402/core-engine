@@ -30,6 +30,39 @@ apiApp.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // tsoa generated routes (auth, gateways, analytics)
 RegisterRoutes(apiApp);
 
+// Error handling middleware - must be after RegisterRoutes
+apiApp.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    // Handle TSOA ValidateError
+    if (err?.name === 'ValidateError') {
+      console.warn(`Validation error: ${JSON.stringify(err.fields)}`);
+      return res.status(422).json({
+        message: 'Validation Failed',
+        details: err.fields,
+      });
+    }
+
+    // Handle other errors
+    if (err instanceof Error) {
+      console.error(`Error: ${err.message}`);
+      return res.status(err.message.includes('not found') ? 404 : 400).json({
+        message: err.message,
+      });
+    }
+
+    // Fallback
+    console.error('Unexpected error:', err);
+    return res.status(500).json({
+      message: 'Internal Server Error',
+    });
+  },
+);
+
 apiApp.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });

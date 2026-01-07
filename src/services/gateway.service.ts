@@ -70,6 +70,45 @@ export class GatewayService {
     });
   }
 
+  async getGatewaysWithStats(userId: string) {
+    // Get all gateways for the user
+    const gateways = await this.prisma.gateway.findMany({
+      where: { userId, status: { not: 'deleted' } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Get stats for each gateway
+    const gatewaysWithStats = await Promise.all(
+      gateways.map(async (gateway) => {
+        // Get total requests count
+        const totalRequests = await this.prisma.requestLog.count({
+          where: { gatewayId: gateway.id },
+        });
+
+        // Get successful payments count
+        const successfulPayments = await this.prisma.requestLog.count({
+          where: {
+            gatewayId: gateway.id,
+            paymentValid: true,
+          },
+        });
+
+        // Calculate total revenue
+        const pricePerRequest = parseFloat(gateway.defaultPricePerRequest) || 0;
+        const totalRevenue = successfulPayments * pricePerRequest;
+
+        return {
+          ...gateway,
+          totalRequests,
+          successfulPayments,
+          totalRevenue,
+        };
+      }),
+    );
+
+    return gatewaysWithStats;
+  }
+
   async updateGateway(
     id: string,
     data: Partial<{

@@ -19,6 +19,7 @@ import { isValidSubdomain } from '../utils/subdomain.util';
 import type {
   CreateGatewayRequest,
   GatewayResponse,
+  GatewayWithStatsResponse,
   QuickCreateGatewayRequest,
   QuickCreateGatewayResponse,
   UpdateGatewayRequest,
@@ -142,6 +143,25 @@ export class GatewayTsoaController extends Controller {
 
     this.setStatus(201);
     return toGatewayResponse(gateway);
+  }
+
+  /**
+   * Get all gateways for the authenticated user with analytics stats
+   * @summary List User Gateways with Stats
+   */
+  @Get('with-stats')
+  @Response<ErrorResponse>(401, 'Unauthorized')
+  public async getGatewaysWithStats(
+    @Request() req: ExpressRequest,
+  ): Promise<GatewayWithStatsResponse[]> {
+    const userId = (req as any).user.userId;
+    const gateways = await this.gatewayService.getGatewaysWithStats(userId);
+    return gateways.map((g) => ({
+      ...toGatewayResponse(g),
+      totalRequests: g.totalRequests,
+      successfulPayments: g.successfulPayments,
+      totalRevenue: g.totalRevenue,
+    }));
   }
 
   /**

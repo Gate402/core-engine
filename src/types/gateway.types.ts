@@ -83,3 +83,12 @@ export interface QuickCreateGatewayResponse extends GatewayResponse {
 export interface GatewayListResponse {
   gateways: GatewayResponse[];
 }
+
+export interface GatewayWithStatsResponse extends GatewayResponse {
+  /** Total number of requests to this gateway */
+  totalRequests: number;
+  /** Number of successful paid requests */
+  successfulPayments: number;
+  /** Total revenue earned (calculated from price × successful payments) */
+  totalRevenue: number;
+}

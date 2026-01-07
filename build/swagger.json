@@ -22,6 +22,10 @@
 						"type": "number",
 						"format": "double"
 					},
+					"defaultToken": {
+						"type": "string",
+						"nullable": true
+					},
 					"acceptedNetworks": {
 						"items": {
 							"type": "string"
@@ -80,6 +84,7 @@
 					"subdomain",
 					"originUrl",
 					"defaultPricePerRequest",
+					"defaultToken",
 					"acceptedNetworks",
 					"secretToken",
 					"status",
@@ -121,6 +126,10 @@
 						"format": "double",
 						"description": "Price per request in USD (e.g., 0.001)"
 					},
+					"defaultToken": {
+						"type": "string",
+						"description": "Token ID to use for payments"
+					},
 					"evmAddress": {
 						"type": "string",
 						"description": "EVM address to receive payments"
@@ -129,6 +138,7 @@
 				"required": [
 					"originUrl",
 					"pricePerRequest",
+					"defaultToken",
 					"evmAddress"
 				],
 				"type": "object",
@@ -148,6 +158,10 @@
 					"defaultPricePerRequest": {
 						"type": "number",
 						"format": "double"
+					},
+					"defaultToken": {
+						"type": "string",
+						"nullable": true
 					},
 					"acceptedNetworks": {
 						"items": {
@@ -191,6 +205,7 @@
 					"subdomain",
 					"originUrl",
 					"defaultPricePerRequest",
+					"defaultToken",
 					"acceptedNetworks",
 					"secretToken",
 					"status",
@@ -212,20 +227,20 @@
 						"description": "Target origin URL to proxy to"
 					},
 					"pricePerRequest": {
-						"type": "number",
-						"format": "double",
+						"type": "string",
+						"enum": [
+							"0.01"
+						],
+						"nullable": false,
 						"description": "Price per request in USD (e.g., 0.001)"
-					},
-					"acceptedNetworks": {
-						"items": {
-							"type": "string"
-						},
-						"type": "array",
-						"description": "List of accepted payment networks (e.g., eip155:84532)"
 					},
 					"subdomain": {
 						"type": "string",
 						"description": "Subdomain for the gateway (e.g., \"myapi\")"
+					},
+					"defaultToken": {
+						"type": "string",
+						"description": "Token ID to use for payments"
 					},
 					"evmAddress": {
 						"type": "string",
@@ -247,9 +262,103 @@
 				"required": [
 					"originUrl",
 					"pricePerRequest",
-					"acceptedNetworks",
 					"subdomain",
+					"defaultToken",
 					"evmAddress"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GatewayWithStatsResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"subdomain": {
+						"type": "string"
+					},
+					"originUrl": {
+						"type": "string"
+					},
+					"defaultPricePerRequest": {
+						"type": "number",
+						"format": "double"
+					},
+					"defaultToken": {
+						"type": "string",
+						"nullable": true
+					},
+					"acceptedNetworks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"secretToken": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"customDomain": {
+						"type": "string",
+						"nullable": true
+					},
+					"paymentScheme": {
+						"type": "string"
+					},
+					"paymentNetwork": {
+						"type": "string"
+					},
+					"evmAddress": {
+						"type": "string"
+					},
+					"userId": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"totalRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Total number of requests to this gateway"
+					},
+					"successfulPayments": {
+						"type": "number",
+						"format": "double",
+						"description": "Number of successful paid requests"
+					},
+					"totalRevenue": {
+						"type": "number",
+						"format": "double",
+						"description": "Total revenue earned (calculated from price × successful payments)"
+					}
+				},
+				"required": [
+					"id",
+					"subdomain",
+					"originUrl",
+					"defaultPricePerRequest",
+					"defaultToken",
+					"acceptedNetworks",
+					"secretToken",
+					"status",
+					"customDomain",
+					"paymentScheme",
+					"paymentNetwork",
+					"evmAddress",
+					"userId",
+					"createdAt",
+					"updatedAt",
+					"totalRequests",
+					"successfulPayments",
+					"totalRevenue"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -261,9 +370,12 @@
 						"description": "Target origin URL to proxy to"
 					},
 					"defaultPricePerRequest": {
-						"type": "number",
-						"format": "double",
+						"type": "string",
 						"description": "Price per request in USD"
+					},
+					"defaultToken": {
+						"type": "string",
+						"description": "Token ID to use for payments"
 					},
 					"status": {
 						"type": "string",
@@ -287,6 +399,195 @@
 						"description": "EVM address to receive payments"
 					}
 				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChainResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"nativeCurrency": {
+						"type": "string"
+					},
+					"rpcUrl": {
+						"type": "string",
+						"nullable": true
+					},
+					"blockExplorer": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"nativeCurrency",
+					"rpcUrl",
+					"blockExplorer",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TokenResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"chainId": {
+						"type": "string"
+					},
+					"symbol": {
+						"type": "string"
+					},
+					"address": {
+						"type": "string"
+					},
+					"decimals": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string",
+						"nullable": true
+					},
+					"version": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"chainId",
+					"symbol",
+					"address",
+					"decimals",
+					"name",
+					"version",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChainWithTokensResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"nativeCurrency": {
+						"type": "string"
+					},
+					"rpcUrl": {
+						"type": "string",
+						"nullable": true
+					},
+					"blockExplorer": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"tokens": {
+						"items": {
+							"$ref": "#/components/schemas/TokenResponse"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"nativeCurrency",
+					"rpcUrl",
+					"blockExplorer",
+					"createdAt",
+					"updatedAt",
+					"tokens"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TokenWithChainResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"chainId": {
+						"type": "string"
+					},
+					"symbol": {
+						"type": "string"
+					},
+					"address": {
+						"type": "string"
+					},
+					"decimals": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string",
+						"nullable": true
+					},
+					"version": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"chain": {
+						"$ref": "#/components/schemas/ChainResponse"
+					}
+				},
+				"required": [
+					"id",
+					"chainId",
+					"symbol",
+					"address",
+					"decimals",
+					"name",
+					"version",
+					"createdAt",
+					"updatedAt",
+					"chain"
+				],
 				"type": "object",
 				"additionalProperties": false
 			},
@@ -698,6 +999,47 @@
 				"parameters": []
 			}
 		},
+		"/gateways/with-stats": {
+			"get": {
+				"operationId": "GetGatewaysWithStats",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/GatewayWithStatsResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all gateways for the authenticated user with analytics stats",
+				"summary": "List User Gateways with Stats",
+				"tags": [
+					"Gateways"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
 		"/gateways/{gatewayId}": {
 			"get": {
 				"operationId": "GetGatewayById",
@@ -840,6 +1182,340 @@
 					{
 						"in": "path",
 						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/config/chains": {
+			"get": {
+				"operationId": "GetChains",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/ChainResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get list of all supported blockchain networks",
+				"summary": "List Chains",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/config/chains/{chainId}": {
+			"get": {
+				"operationId": "GetChainById",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ChainWithTokensResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get details of a specific chain by ID",
+				"summary": "Get Chain",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "chainId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/config/chains-with-tokens": {
+			"get": {
+				"operationId": "GetChainsWithTokens",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/ChainWithTokensResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get list of all supported chains with their tokens",
+				"summary": "List Chains With Tokens",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/config/tokens": {
+			"get": {
+				"operationId": "GetAllTokens",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/TokenWithChainResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get list of all supported tokens across all chains",
+				"summary": "List All Tokens",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/config/chains/{chainId}/tokens": {
+			"get": {
+				"operationId": "GetTokensByChain",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/TokenResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get tokens for a specific chain",
+				"summary": "List Tokens by Chain",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "chainId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/config/tokens/{tokenId}": {
+			"get": {
+				"operationId": "GetTokenById",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TokenWithChainResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get a specific token by ID",
+				"summary": "Get Token",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "tokenId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/config/chains/{chainId}/tokens/{symbol}": {
+			"get": {
+				"operationId": "GetTokenByChainAndSymbol",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TokenWithChainResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get a token by chain and symbol",
+				"summary": "Get Token by Chain and Symbol",
+				"tags": [
+					"Configuration"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "chainId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "symbol",
 						"required": true,
 						"schema": {
 							"type": "string"
