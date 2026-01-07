@@ -78,10 +78,60 @@ model RequestLog {
   clientIp        String?
   createdAt       DateTime @default(now())
 
+  // Payment tracking
+  paymentAmount    String? // Amount paid (in token decimals, e.g., "100000" for 0.1 USDC)
+  paymentToken     String? // Token symbol (USDC, etc.)
+  paymentNetwork   String? // Network used (eip155:84532, etc.)
+  settlementTxHash String? // On-chain transaction hash
+  settlementStatus String? // pending, success, failed
+
+  // Error tracking
+  errorType    String? // timeout, invalid_payment, origin_error, settlement_failed
+  errorMessage String?
+
+  // Latency breakdown
+  paymentVerifyMs Int? // Time to verify payment signature
+  settlementMs    Int? // Time to settle on-chain
+  originLatencyMs Int? // Response time from origin server
+
   @@index([gatewayId, createdAt])
   @@index([gatewayId, statusCode, createdAt]) // Error tracking
   @@index([gatewayId, path]) // Route analytics
   @@index([clientWallet, createdAt])
+  @@index([settlementTxHash])
+  @@index([paymentNetwork, createdAt])
+}
+
+// Aggregated daily stats for fast dashboard queries
+model DailyStats {
+  id        String   @id @default(uuid())
+  gatewayId String
+  date      DateTime @db.Date
+
+  // Request counts
+  totalRequests  Int @default(0)
+  paidRequests   Int @default(0)
+  failedRequests Int @default(0) // 4xx/5xx responses
+
+  // Payment metrics
+  paymentAttempts Int    @default(0) // Requests with payment header
+  successfulPayments Int @default(0) // Valid & settled payments
+  failedPayments  Int    @default(0) // Invalid or failed settlements
+  totalRevenue    String @default("0") // In smallest token unit
+
+  // Payer metrics
+  uniquePayers Int @default(0) // Distinct wallets
+
+  // Performance metrics
+  avgLatencyMs Int? // Average total request latency
+  p95LatencyMs Int? // 95th percentile latency
+  avgOriginMs  Int? // Average origin server response time
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([gatewayId, date])
+  @@index([gatewayId, date])
 }
 
 model Chain {

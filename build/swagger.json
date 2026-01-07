@@ -789,19 +789,49 @@
 			"GatewayOverviewResponse": {
 				"properties": {
 					"totalRequests": {
+						"type": "number",
+						"format": "double",
 						"description": "Total number of requests"
 					},
 					"successfulPayments": {
+						"type": "number",
+						"format": "double",
 						"description": "Number of successful payments"
 					},
+					"failedPayments": {
+						"type": "number",
+						"format": "double",
+						"description": "Number of failed payments"
+					},
 					"totalRevenue": {
-						"description": "Total revenue earned"
+						"type": "string",
+						"description": "Total revenue earned (in smallest token unit)"
+					},
+					"uniquePayers": {
+						"type": "number",
+						"format": "double",
+						"description": "Unique payers count"
+					},
+					"avgLatencyMs": {
+						"type": "number",
+						"format": "double",
+						"nullable": true,
+						"description": "Average latency in ms"
+					},
+					"conversionRate": {
+						"type": "number",
+						"format": "double",
+						"description": "Conversion rate (paid / total requests)"
 					}
 				},
 				"required": [
 					"totalRequests",
 					"successfulPayments",
-					"totalRevenue"
+					"failedPayments",
+					"totalRevenue",
+					"uniquePayers",
+					"avgLatencyMs",
+					"conversionRate"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -813,15 +843,189 @@
 						"description": "Wallet address"
 					},
 					"totalSpent": {
+						"type": "string",
+						"description": "Total amount spent (in smallest token unit)"
+					},
+					"requestCount": {
 						"type": "number",
 						"format": "double",
-						"nullable": true,
-						"description": "Total amount spent"
+						"description": "Number of requests made"
+					},
+					"lastRequestAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "Last request timestamp"
 					}
 				},
 				"required": [
 					"wallet",
-					"totalSpent"
+					"totalSpent",
+					"requestCount",
+					"lastRequestAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RequestTimelineResponse": {
+				"properties": {
+					"timestamp": {
+						"type": "string",
+						"description": "Time bucket (ISO date string)"
+					},
+					"totalRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Total requests in this bucket"
+					},
+					"paidRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Paid requests in this bucket"
+					},
+					"failedRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Failed requests in this bucket"
+					}
+				},
+				"required": [
+					"timestamp",
+					"totalRequests",
+					"paidRequests",
+					"failedRequests"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RevenueTimelineResponse": {
+				"properties": {
+					"timestamp": {
+						"type": "string",
+						"description": "Time bucket (ISO date string)"
+					},
+					"revenue": {
+						"type": "string",
+						"description": "Revenue in this bucket (in smallest token unit)"
+					},
+					"paymentCount": {
+						"type": "number",
+						"format": "double",
+						"description": "Number of successful payments"
+					}
+				},
+				"required": [
+					"timestamp",
+					"revenue",
+					"paymentCount"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RouteAnalyticsResponse": {
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "API route path"
+					},
+					"method": {
+						"type": "string",
+						"description": "HTTP method"
+					},
+					"totalRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Total requests to this route"
+					},
+					"paidRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Paid requests to this route"
+					},
+					"avgLatencyMs": {
+						"type": "number",
+						"format": "double",
+						"nullable": true,
+						"description": "Average latency in ms"
+					},
+					"revenue": {
+						"type": "string",
+						"description": "Revenue from this route (in smallest token unit)"
+					}
+				},
+				"required": [
+					"path",
+					"method",
+					"totalRequests",
+					"paidRequests",
+					"avgLatencyMs",
+					"revenue"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ConversionFunnelResponse": {
+				"properties": {
+					"totalRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Total requests"
+					},
+					"paymentRequiredCount": {
+						"type": "number",
+						"format": "double",
+						"description": "Requests that returned 402 (payment required)"
+					},
+					"paymentAttemptCount": {
+						"type": "number",
+						"format": "double",
+						"description": "Requests with payment header provided"
+					},
+					"validPaymentCount": {
+						"type": "number",
+						"format": "double",
+						"description": "Requests with valid payment"
+					},
+					"settledPaymentCount": {
+						"type": "number",
+						"format": "double",
+						"description": "Successfully settled payments"
+					},
+					"rates": {
+						"properties": {
+							"overallRate": {
+								"type": "number",
+								"format": "double"
+							},
+							"settlementRate": {
+								"type": "number",
+								"format": "double"
+							},
+							"validationRate": {
+								"type": "number",
+								"format": "double"
+							},
+							"attemptRate": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"overallRate",
+							"settlementRate",
+							"validationRate",
+							"attemptRate"
+						],
+						"type": "object",
+						"description": "Conversion rates"
+					}
+				},
+				"required": [
+					"totalRequests",
+					"paymentRequiredCount",
+					"paymentAttemptCount",
+					"validPaymentCount",
+					"settledPaymentCount",
+					"rates"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -1911,6 +2115,22 @@
 						"schema": {
 							"type": "string"
 						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
 					}
 				]
 			}
@@ -1968,6 +2188,369 @@
 						"in": "query",
 						"name": "gatewayId",
 						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/requests-timeline": {
+			"get": {
+				"operationId": "GetRequestsTimeline",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/RequestTimelineResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get requests timeline for a gateway",
+				"summary": "Requests Timeline",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "interval",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": [
+								"hour",
+								"day",
+								"week",
+								"month"
+							]
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/revenue-timeline": {
+			"get": {
+				"operationId": "GetRevenueTimeline",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/RevenueTimelineResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get revenue timeline for a gateway",
+				"summary": "Revenue Timeline",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "interval",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": [
+								"hour",
+								"day",
+								"week",
+								"month"
+							]
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/routes": {
+			"get": {
+				"operationId": "GetRouteAnalytics",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/RouteAnalyticsResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get route analytics for a gateway (most popular endpoints)",
+				"summary": "Route Analytics",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/conversion-funnel": {
+			"get": {
+				"operationId": "GetConversionFunnel",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ConversionFunnelResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get conversion funnel analytics for a gateway",
+				"summary": "Conversion Funnel",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "gatewayId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
 						"schema": {
 							"type": "string"
 						}

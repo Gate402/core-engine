@@ -81,6 +81,17 @@ export class ProxyService {
       paymentId: undefined as string | undefined,
       clientIp: req.ip,
       clientWallet: undefined as string | undefined,
+      // Enhanced analytics fields
+      paymentAmount: undefined as string | undefined,
+      paymentToken: gateway.defaultToken || undefined,
+      paymentNetwork: gateway.paymentNetwork || 'eip155:84532',
+      settlementTxHash: undefined as string | undefined,
+      settlementStatus: undefined as string | undefined,
+      errorType: undefined as string | undefined,
+      errorMessage: undefined as string | undefined,
+      paymentVerifyMs: undefined as number | undefined,
+      settlementMs: undefined as number | undefined,
+      originLatencyMs: undefined as number | undefined,
     };
 
     // 6. If no payment, return 402 with PAYMENT-REQUIRED header
@@ -96,7 +107,7 @@ export class ProxyService {
       // Encode requirements as base64 for PAYMENT-REQUIRED header (v2 protocol)
       const requirementsHeader = Buffer.from(JSON.stringify(paymentRequired)).toString('base64');
 
-      this.analyticsService.logRequest({
+      this.analyticsService.logRequestAsync({
         ...logData,
         statusCode: 402,
         durationMs: Date.now() - startTime,
@@ -119,16 +130,21 @@ export class ProxyService {
     // 7. Verify payment with facilitator
     console.log('🔐 Payment provided, verifying with facilitator...');
 
+    const verifyStartTime = Date.now();
     const verifyResult = await this.x402Service.verifyPayment(paymentHeader, requirements);
+    logData.paymentVerifyMs = Date.now() - verifyStartTime;
 
     if (!verifyResult.isValid) {
       console.log(`❌ Payment verification failed: ${verifyResult.invalidReason}`);
 
-      this.analyticsService.logRequest({
+      this.analyticsService.logRequestAsync({
         ...logData,
         statusCode: 402,
         paymentValid: false,
         durationMs: Date.now() - startTime,
+        errorType: 'invalid_payment',
+        errorMessage: verifyResult.invalidReason,
+        settlementStatus: 'failed',
       });
 
       res.status(402).json({
@@ -141,23 +157,33 @@ export class ProxyService {
     console.log('✅ Payment verified successfully');
     logData.paymentValid = true;
 
+    // Extract client wallet from payment payload if available
+    if (verifyResult.paymentPayload?.payload?.authorization?.from) {
+      logData.clientWallet = verifyResult.paymentPayload.payload.authorization.from;
+    }
+
     // 8. Settle payment BEFORE proxying to avoid header conflicts
     console.log('💰 Settling payment on-chain...');
 
+    const settleStartTime = Date.now();
     try {
       const settleResult = await this.x402Service.settlePayment(
         verifyResult.paymentPayload,
         requirements,
       );
+      logData.settlementMs = Date.now() - settleStartTime;
       console.log({ settleResult });
 
       if (!settleResult.success) {
         console.log('❌ Settlement failed: No result');
 
-        this.analyticsService.logRequest({
+        this.analyticsService.logRequestAsync({
           ...logData,
           statusCode: 502,
           durationMs: Date.now() - startTime,
+          settlementStatus: 'failed',
+          errorType: 'settlement_failed',
+          errorMessage: 'Settlement returned unsuccessful',
         });
 
         return res.status(502).json({
@@ -166,18 +192,27 @@ export class ProxyService {
         });
       }
 
+      // Capture successful settlement details
+      logData.settlementTxHash = settleResult.transaction;
+      logData.settlementStatus = 'success';
+      logData.paymentAmount = gateway.defaultPricePerRequest;
+
       // Add PAYMENT-RESPONSE header (v2 protocol)
       const settlementHeader = Buffer.from(JSON.stringify(settleResult)).toString('base64');
       res.set('PAYMENT-RESPONSE', settlementHeader);
 
       console.log(`✅ Payment settled: ${settleResult.transaction}`);
     } catch (error) {
+      logData.settlementMs = Date.now() - settleStartTime;
       console.error(`❌ Settlement failed: ${error}`);
 
-      this.analyticsService.logRequest({
+      this.analyticsService.logRequestAsync({
         ...logData,
         statusCode: 502,
         durationMs: Date.now() - startTime,
+        settlementStatus: 'failed',
+        errorType: 'settlement_failed',
+        errorMessage: error instanceof Error ? error.message : String(error),
       });
 
       return res.status(502).json({
@@ -266,6 +301,12 @@ export class ProxyService {
         },
         proxyRes: (proxyRes, req: any, res) => {
           console.log('inside proxyRes');
+          // Calculate origin latency (time from proxy start to origin response)
+          const originEndTime = Date.now();
+          const originLatency = logData.settlementMs
+            ? originEndTime - startTime - (logData.paymentVerifyMs || 0) - logData.settlementMs
+            : undefined;
+
           // 1. Add proxy metadata headers
           res.setHeader('X-Proxied-By', 'Gate402');
           res.setHeader('X-Gateway-ID', gateway.id);
@@ -291,19 +332,22 @@ export class ProxyService {
             }
           }
 
-          // 5. Log success after response
-          this.analyticsService.logRequest({
+          // 5. Log success after response with all captured data
+          this.analyticsService.logRequestAsync({
             ...logData,
             statusCode: proxyRes.statusCode || 200,
             durationMs: Date.now() - startTime,
+            originLatencyMs: originLatency,
           });
         },
         error: (err, req, res) => {
           console.error('Proxy Error:', err);
-          this.analyticsService.logRequest({
+          this.analyticsService.logRequestAsync({
             ...logData,
             statusCode: 502,
             durationMs: Date.now() - startTime,
+            errorType: 'origin_error',
+            errorMessage: err.message || 'Proxy error',
           });
 
           // res is http.ServerResponse, not Express.Response here strict speaking in types
