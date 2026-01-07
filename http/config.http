@@ -1,0 +1,39 @@
+# @baseUrl = https://gate402-api.jasonstanley.id/config
+@baseUrl = http://localhost:3031/config
+@chainId = eip155:84532
+@tokenId = YOUR_TOKEN_UUID_HERE
+
+### List All Chains
+# Returns all supported blockchain networks
+GET {{baseUrl}}/chains
+Content-Type: application/json
+
+### Get Chain by ID
+# Returns specific chain with its tokens
+GET {{baseUrl}}/chains/{{chainId}}
+Content-Type: application/json
+
+### List Chains With Tokens
+# Returns all chains with their tokens nested
+GET {{baseUrl}}/chains-with-tokens
+Content-Type: application/json
+
+### List All Tokens
+# Returns all tokens across all chains
+GET {{baseUrl}}/tokens
+Content-Type: application/json
+
+### List Tokens by Chain
+# Returns tokens for a specific chain
+GET {{baseUrl}}/chains/{{chainId}}/tokens
+Content-Type: application/json
+
+### Get Token by ID
+# Returns specific token by UUID
+GET {{baseUrl}}/tokens/{{tokenId}}
+Content-Type: application/json
+
+### Get Token by Chain and Symbol
+# Returns token by chain ID and symbol (e.g., usdc)
+GET {{baseUrl}}/chains/{{chainId}}/tokens/usdc
+Content-Type: application/json
