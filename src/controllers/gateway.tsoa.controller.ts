@@ -52,9 +52,11 @@ export class GatewayTsoaController extends Controller {
   ): Promise<QuickCreateGatewayResponse> {
     const userId = (req as any).user.userId;
 
-    if (!body.originUrl || !body.pricePerRequest || !body.evmAddress) {
+    if (!body.originUrl || !body.pricePerRequest || !body.defaultToken || !body.evmAddress) {
       this.setStatus(400);
-      throw new Error('Missing required fields (originUrl, pricePerRequest, evmAddress)');
+      throw new Error(
+        'Missing required fields (originUrl, pricePerRequest, defaultToken, evmAddress)',
+      );
     }
 
     // Auto-generate subdomain from origin URL
@@ -71,6 +73,7 @@ export class GatewayTsoaController extends Controller {
         subdomain,
         originUrl: body.originUrl,
         defaultPricePerRequest: body.pricePerRequest.toString(),
+        defaultToken: body.defaultToken,
         paymentScheme: 'exact',
         paymentNetwork,
         evmAddress: body.evmAddress,
@@ -110,13 +113,13 @@ export class GatewayTsoaController extends Controller {
     if (
       !body.originUrl ||
       !body.pricePerRequest ||
-      !body.acceptedNetworks ||
       !body.subdomain ||
+      !body.defaultToken ||
       !body.evmAddress
     ) {
       this.setStatus(400);
       throw new Error(
-        'Missing required fields (originUrl, pricePerRequest, acceptedNetworks, subdomain, evmAddress)',
+        'Missing required fields (originUrl, pricePerRequest, subdomain, defaultToken, evmAddress)',
       );
     }
 
@@ -130,6 +133,7 @@ export class GatewayTsoaController extends Controller {
       subdomain: body.subdomain,
       originUrl: body.originUrl,
       defaultPricePerRequest: body.pricePerRequest.toString(),
+      defaultToken: body.defaultToken,
       customDomain: body.customDomain,
       paymentScheme: body.paymentScheme,
       paymentNetwork: body.paymentNetwork,

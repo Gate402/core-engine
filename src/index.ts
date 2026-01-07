@@ -34,7 +34,7 @@ apiApp.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-const PORT = env.API_PORT || 3000;
+const API_PORT = env.API_PORT || 3000;
 const PROXY_PORT = env.PROXY_PORT || 3001;
 
 // Connect to DB and initialize x402, then start servers
@@ -47,8 +47,8 @@ connectDB().then(async () => {
   proxyApp.use(createProxyMiddleware(x402Service));
 
   // Start Manager API
-  apiApp.listen(PORT, () => {
-    console.log(`Gate402 Manager API running on port ${PORT}`);
+  apiApp.listen(API_PORT, () => {
+    console.log(`Gate402 Manager API running on port ${API_PORT}`);
     console.log(`Environment: ${env.NODE_ENV}`);
   });
 

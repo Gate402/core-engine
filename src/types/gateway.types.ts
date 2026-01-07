@@ -5,6 +5,8 @@ export interface QuickCreateGatewayRequest {
   originUrl: string;
   /** Price per request in USD (e.g., 0.001) */
   pricePerRequest: number;
+  /** Token ID to use for payments */
+  defaultToken: string;
   /** EVM address to receive payments */
   evmAddress: string;
 }
@@ -13,11 +15,11 @@ export interface CreateGatewayRequest {
   /** Target origin URL to proxy to */
   originUrl: string;
   /** Price per request in USD (e.g., 0.001) */
-  pricePerRequest: number;
-  /** List of accepted payment networks (e.g., eip155:84532) */
-  acceptedNetworks: string[];
+  pricePerRequest: '0.01';
   /** Subdomain for the gateway (e.g., "myapi") */
   subdomain: string;
+  /** Token ID to use for payments */
+  defaultToken: string;
   /** EVM address to receive payments */
   evmAddress: string;
   /** Optional custom domain */
@@ -33,6 +35,8 @@ export interface UpdateGatewayRequest {
   originUrl?: string;
   /** Price per request in USD */
   defaultPricePerRequest?: string;
+  /** Token ID to use for payments */
+  defaultToken?: string;
   /** Gateway status (active, paused, deleted) */
   status?: string;
   /** Custom domain */
@@ -52,6 +56,7 @@ export interface GatewayResponse {
   subdomain: string;
   originUrl: string;
   defaultPricePerRequest: number;
+  defaultToken: string | null;
   acceptedNetworks: string[];
   secretToken: string;
   status: string;
