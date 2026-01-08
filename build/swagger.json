@@ -786,6 +786,134 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"UserOverviewResponse": {
+				"properties": {
+					"totalGateways": {
+						"type": "number",
+						"format": "double",
+						"description": "Total number of gateways"
+					},
+					"totalRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Total requests across all gateways"
+					},
+					"successfulPayments": {
+						"type": "number",
+						"format": "double",
+						"description": "Number of successful payments"
+					},
+					"totalRevenue": {
+						"type": "string",
+						"description": "Total revenue earned across all gateways (in smallest token unit)"
+					},
+					"uniquePayers": {
+						"type": "number",
+						"format": "double",
+						"description": "Unique payers count across all gateways"
+					},
+					"avgLatencyMs": {
+						"type": "number",
+						"format": "double",
+						"nullable": true,
+						"description": "Average latency in ms across all gateways"
+					},
+					"gatewayBreakdown": {
+						"items": {
+							"properties": {
+								"totalRevenue": {
+									"type": "string"
+								},
+								"totalRequests": {
+									"type": "number",
+									"format": "double"
+								},
+								"subdomain": {
+									"type": "string"
+								},
+								"gatewayId": {
+									"type": "string"
+								}
+							},
+							"required": [
+								"totalRevenue",
+								"totalRequests",
+								"subdomain",
+								"gatewayId"
+							],
+							"type": "object"
+						},
+						"type": "array",
+						"description": "Per-gateway breakdown"
+					}
+				},
+				"required": [
+					"totalGateways",
+					"totalRequests",
+					"successfulPayments",
+					"totalRevenue",
+					"uniquePayers",
+					"avgLatencyMs",
+					"gatewayBreakdown"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserRevenueTimelineResponse": {
+				"properties": {
+					"timestamp": {
+						"type": "string",
+						"description": "Time bucket (ISO date string)"
+					},
+					"revenue": {
+						"type": "string",
+						"description": "Revenue in this bucket (in smallest token unit)"
+					},
+					"paymentCount": {
+						"type": "number",
+						"format": "double",
+						"description": "Number of successful payments"
+					}
+				},
+				"required": [
+					"timestamp",
+					"revenue",
+					"paymentCount"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserRequestsTimelineResponse": {
+				"properties": {
+					"timestamp": {
+						"type": "string",
+						"description": "Time bucket (ISO date string)"
+					},
+					"totalRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Total requests in this bucket"
+					},
+					"paidRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Paid requests in this bucket"
+					},
+					"failedRequests": {
+						"type": "number",
+						"format": "double",
+						"description": "Failed requests in this bucket"
+					}
+				},
+				"required": [
+					"timestamp",
+					"totalRequests",
+					"paidRequests",
+					"failedRequests"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GatewayOverviewResponse": {
 				"properties": {
 					"totalRequests": {
@@ -2060,6 +2188,205 @@
 						}
 					}
 				}
+			}
+		},
+		"/analytics/user/overview": {
+			"get": {
+				"operationId": "GetUserOverview",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UserOverviewResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get user overview statistics across all gateways for the dashboard",
+				"summary": "User Dashboard Overview",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/user/revenue-timeline": {
+			"get": {
+				"operationId": "GetUserRevenueTimeline",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/UserRevenueTimelineResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get user revenue timeline across all gateways",
+				"summary": "User Revenue Timeline",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "interval",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": [
+								"hour",
+								"day",
+								"week",
+								"month"
+							]
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/analytics/user/requests-timeline": {
+			"get": {
+				"operationId": "GetUserRequestsTimeline",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/UserRequestsTimelineResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get user requests timeline across all gateways",
+				"summary": "User Requests Timeline",
+				"tags": [
+					"Analytics"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "interval",
+						"required": false,
+						"schema": {
+							"type": "string",
+							"enum": [
+								"hour",
+								"day",
+								"week",
+								"month"
+							]
+						}
+					},
+					{
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
 			}
 		},
 		"/analytics/overview": {

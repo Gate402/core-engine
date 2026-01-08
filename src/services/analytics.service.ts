@@ -6,6 +6,9 @@ import type {
   RevenueTimelineResponse,
   RouteAnalyticsResponse,
   TopPayerResponse,
+  UserOverviewResponse,
+  UserRequestsTimelineResponse,
+  UserRevenueTimelineResponse,
 } from '../types/analytics.types';
 
 export interface RequestLogData {
@@ -374,6 +377,197 @@ export class AnalyticsService {
     };
   }
 
+  // ============ User-Level Analytics (Dashboard) ============
+
+  /**
+   * Get user overview statistics across all their gateways
+   */
+  async getUserOverview(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<UserOverviewResponse> {
+    // Get all gateways for this user
+    const gateways = await this.prisma.gateway.findMany({
+      where: { userId, status: { not: 'deleted' } },
+      select: { id: true, subdomain: true },
+    });
+
+    if (gateways.length === 0) {
+      return {
+        totalGateways: 0,
+        totalRequests: 0,
+        successfulPayments: 0,
+        totalRevenue: '0',
+        uniquePayers: 0,
+        avgLatencyMs: null,
+        gatewayBreakdown: [],
+      };
+    }
+
+    const gatewayIds = gateways.map((g) => g.id);
+    const dateFilter = this.buildDateFilter(startDate, endDate);
+
+    // Aggregate stats across all gateways
+    const [totalStats, successfulPayments, uniquePayersResult, latencyResult] = await Promise.all([
+      this.prisma.requestLog.aggregate({
+        where: { gatewayId: { in: gatewayIds }, ...dateFilter },
+        _count: { id: true },
+      }),
+      this.prisma.requestLog.count({
+        where: { gatewayId: { in: gatewayIds }, settlementStatus: 'success', ...dateFilter },
+      }),
+      this.prisma.requestLog.groupBy({
+        by: ['clientWallet'],
+        where: {
+          gatewayId: { in: gatewayIds },
+          paymentValid: true,
+          clientWallet: { not: null },
+          ...dateFilter,
+        },
+      }),
+      this.prisma.requestLog.aggregate({
+        where: { gatewayId: { in: gatewayIds }, durationMs: { not: null }, ...dateFilter },
+        _avg: { durationMs: true },
+      }),
+    ]);
+
+    // Get total revenue using raw query
+    const revenueResult = await this.prisma.$queryRaw<[{ total: string }]>`
+      SELECT COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as total
+      FROM "RequestLog"
+      WHERE "gatewayId" = ANY(${gatewayIds})
+      AND "settlementStatus" = 'success'
+      ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
+      ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+    `;
+
+    // Get per-gateway breakdown
+    const gatewayBreakdown = await Promise.all(
+      gateways.map(async (gateway) => {
+        const [reqCount, revResult] = await Promise.all([
+          this.prisma.requestLog.count({
+            where: { gatewayId: gateway.id, ...dateFilter },
+          }),
+          this.prisma.$queryRaw<[{ total: string }]>`
+            SELECT COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as total
+            FROM "RequestLog"
+            WHERE "gatewayId" = ${gateway.id}
+            AND "settlementStatus" = 'success'
+            ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
+            ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+          `,
+        ]);
+
+        return {
+          gatewayId: gateway.id,
+          subdomain: gateway.subdomain,
+          totalRequests: reqCount,
+          totalRevenue: revResult[0]?.total || '0',
+        };
+      }),
+    );
+
+    return {
+      totalGateways: gateways.length,
+      totalRequests: totalStats._count.id || 0,
+      successfulPayments,
+      totalRevenue: revenueResult[0]?.total || '0',
+      uniquePayers: uniquePayersResult.length,
+      avgLatencyMs: latencyResult._avg.durationMs
+        ? Math.round(latencyResult._avg.durationMs)
+        : null,
+      gatewayBreakdown,
+    };
+  }
+
+  /**
+   * Get user revenue timeline across all their gateways
+   */
+  async getUserRevenueTimeline(
+    userId: string,
+    interval: 'hour' | 'day' | 'week' | 'month' = 'day',
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<UserRevenueTimelineResponse[]> {
+    // Get all gateways for this user
+    const gateways = await this.prisma.gateway.findMany({
+      where: { userId, status: { not: 'deleted' } },
+      select: { id: true },
+    });
+
+    if (gateways.length === 0) return [];
+
+    const gatewayIds = gateways.map((g) => g.id);
+    const truncFn = this.getDateTruncFunction(interval);
+
+    const result = await this.prisma.$queryRaw<
+      { timestamp: Date; revenue: string; count: bigint }[]
+    >`
+      SELECT 
+        DATE_TRUNC(${truncFn}, "createdAt") as timestamp,
+        COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as revenue,
+        COUNT(*) as count
+      FROM "RequestLog"
+      WHERE "gatewayId" = ANY(${gatewayIds})
+      AND "settlementStatus" = 'success'
+      ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
+      ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+      GROUP BY DATE_TRUNC(${truncFn}, "createdAt")
+      ORDER BY timestamp ASC
+    `;
+
+    return result.map((r) => ({
+      timestamp: r.timestamp.toISOString(),
+      revenue: r.revenue,
+      paymentCount: Number(r.count),
+    }));
+  }
+
+  /**
+   * Get user requests timeline across all their gateways
+   */
+  async getUserRequestsTimeline(
+    userId: string,
+    interval: 'hour' | 'day' | 'week' | 'month' = 'day',
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<UserRequestsTimelineResponse[]> {
+    // Get all gateways for this user
+    const gateways = await this.prisma.gateway.findMany({
+      where: { userId, status: { not: 'deleted' } },
+      select: { id: true },
+    });
+
+    if (gateways.length === 0) return [];
+
+    const gatewayIds = gateways.map((g) => g.id);
+    const truncFn = this.getDateTruncFunction(interval);
+
+    const result = await this.prisma.$queryRaw<
+      { timestamp: Date; total: bigint; paid: bigint; failed: bigint }[]
+    >`
+      SELECT 
+        DATE_TRUNC(${truncFn}, "createdAt") as timestamp,
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE "settlementStatus" = 'success') as paid,
+        COUNT(*) FILTER (WHERE "statusCode" >= 400) as failed
+      FROM "RequestLog"
+      WHERE "gatewayId" = ANY(${gatewayIds})
+      ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
+      ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+      GROUP BY DATE_TRUNC(${truncFn}, "createdAt")
+      ORDER BY timestamp ASC
+    `;
+
+    return result.map((r) => ({
+      timestamp: r.timestamp.toISOString(),
+      totalRequests: Number(r.total),
+      paidRequests: Number(r.paid),
+      failedRequests: Number(r.failed),
+    }));
+  }
+
   // ============ Helper Methods ============
 
   private buildDateFilter(startDate?: Date, endDate?: Date) {
@@ -390,4 +584,5 @@ export class AnalyticsService {
     return interval;
   }
 }
+
 

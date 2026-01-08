@@ -1,4 +1,5 @@
-import { Controller, Get, Query, Response, Route, Security, Tags } from 'tsoa';
+import { Controller, Get, Query, Request, Response, Route, Security, Tags } from 'tsoa';
+import type { Request as ExpressRequest } from 'express';
 import { AnalyticsService } from '../services/analytics.service';
 import type {
   ConversionFunnelResponse,
@@ -7,6 +8,9 @@ import type {
   RevenueTimelineResponse,
   RouteAnalyticsResponse,
   TopPayerResponse,
+  UserOverviewResponse,
+  UserRequestsTimelineResponse,
+  UserRevenueTimelineResponse,
 } from '../types/analytics.types';
 import type { ErrorResponse } from '../types/auth.types';
 
@@ -15,6 +19,66 @@ import type { ErrorResponse } from '../types/auth.types';
 @Security('jwt')
 export class AnalyticsTsoaController extends Controller {
   private analyticsService = new AnalyticsService();
+
+  // ============ User-Level Analytics (Dashboard) ============
+
+  /**
+   * Get user overview statistics across all gateways for the dashboard
+   * @summary User Dashboard Overview
+   */
+  @Get('user/overview')
+  @Response<ErrorResponse>(401, 'Unauthorized')
+  public async getUserOverview(
+    @Request() req: ExpressRequest,
+    @Query() startDate?: string,
+    @Query() endDate?: string,
+  ): Promise<UserOverviewResponse> {
+    const userId = (req as any).user.userId;
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    return this.analyticsService.getUserOverview(userId, start, end);
+  }
+
+  /**
+   * Get user revenue timeline across all gateways
+   * @summary User Revenue Timeline
+   */
+  @Get('user/revenue-timeline')
+  @Response<ErrorResponse>(401, 'Unauthorized')
+  public async getUserRevenueTimeline(
+    @Request() req: ExpressRequest,
+    @Query() interval?: 'hour' | 'day' | 'week' | 'month',
+    @Query() startDate?: string,
+    @Query() endDate?: string,
+  ): Promise<UserRevenueTimelineResponse[]> {
+    const userId = (req as any).user.userId;
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    return this.analyticsService.getUserRevenueTimeline(userId, interval || 'day', start, end);
+  }
+
+  /**
+   * Get user requests timeline across all gateways
+   * @summary User Requests Timeline
+   */
+  @Get('user/requests-timeline')
+  @Response<ErrorResponse>(401, 'Unauthorized')
+  public async getUserRequestsTimeline(
+    @Request() req: ExpressRequest,
+    @Query() interval?: 'hour' | 'day' | 'week' | 'month',
+    @Query() startDate?: string,
+    @Query() endDate?: string,
+  ): Promise<UserRequestsTimelineResponse[]> {
+    const userId = (req as any).user.userId;
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    return this.analyticsService.getUserRequestsTimeline(userId, interval || 'day', start, end);
+  }
+
+  // ============ Gateway-Level Analytics ============
 
   /**
    * Get overview statistics for a gateway
@@ -158,4 +222,5 @@ export class AnalyticsTsoaController extends Controller {
     return this.analyticsService.getConversionFunnel(gatewayId, start, end);
   }
 }
+
 

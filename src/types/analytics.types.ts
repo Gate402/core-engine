@@ -92,6 +92,50 @@ export interface ConversionFunnelResponse {
   };
 }
 
+// ============ User-Level Analytics (Dashboard) ============
+
+export interface UserOverviewResponse {
+  /** Total number of gateways */
+  totalGateways: number;
+  /** Total requests across all gateways */
+  totalRequests: number;
+  /** Number of successful payments */
+  successfulPayments: number;
+  /** Total revenue earned across all gateways (in smallest token unit) */
+  totalRevenue: string;
+  /** Unique payers count across all gateways */
+  uniquePayers: number;
+  /** Average latency in ms across all gateways */
+  avgLatencyMs: number | null;
+  /** Per-gateway breakdown */
+  gatewayBreakdown: {
+    gatewayId: string;
+    subdomain: string;
+    totalRequests: number;
+    totalRevenue: string;
+  }[];
+}
+
+export interface UserRevenueTimelineResponse {
+  /** Time bucket (ISO date string) */
+  timestamp: string;
+  /** Revenue in this bucket (in smallest token unit) */
+  revenue: string;
+  /** Number of successful payments */
+  paymentCount: number;
+}
+
+export interface UserRequestsTimelineResponse {
+  /** Time bucket (ISO date string) */
+  timestamp: string;
+  /** Total requests in this bucket */
+  totalRequests: number;
+  /** Paid requests in this bucket */
+  paidRequests: number;
+  /** Failed requests in this bucket */
+  failedRequests: number;
+}
+
 // Query params
 export interface AnalyticsQueryParams {
   gatewayId: string;
@@ -100,4 +144,5 @@ export interface AnalyticsQueryParams {
   interval?: 'hour' | 'day' | 'week' | 'month';
   limit?: number;
 }
+
 
