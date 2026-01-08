@@ -96,6 +96,9 @@ export class AnalyticsService {
     endDate?: Date,
   ): Promise<GatewayOverviewResponse> {
     const dateFilter = this.buildDateFilter(startDate, endDate);
+    const endDateTime = startDate ?? new Date();
+    const timeHoursGap = 12
+    const startDateTime = new Date(endDateTime.getTime() - timeHoursGap * 60 * 60 * 1000);
 
     const [stats, uniquePayersResult, latencyResult] = await Promise.all([
       // Basic counts
@@ -134,8 +137,8 @@ export class AnalyticsService {
         FROM "RequestLog"
         WHERE "gatewayId" = ${gatewayId}
         AND "settlementStatus" = 'success'
-        ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
-        ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+        ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDateTime.toISOString()}` : this.prisma.$queryRaw``}
+        ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDateTime.toISOString()}` : this.prisma.$queryRaw``}
       `,
     ]);
 
