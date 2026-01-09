@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { getPrismaClient } from '../config/database';
 import type {
   ConversionFunnelResponse,
@@ -100,7 +101,7 @@ export class AnalyticsService {
   ): Promise<GatewayOverviewResponse> {
     const dateFilter = this.buildDateFilter(startDate, endDate);
     const endDateTime = startDate ?? new Date();
-    const timeHoursGap = 12
+    const timeHoursGap = 12;
     const startDateTime = new Date(endDateTime.getTime() - timeHoursGap * 60 * 60 * 1000);
 
     const [stats, uniquePayersResult, latencyResult] = await Promise.all([
@@ -187,9 +188,7 @@ export class AnalyticsService {
     });
 
     // Get revenue per wallet with raw query
-    const wallets = topPayers
-      .map((p) => p.clientWallet)
-      .filter((w): w is string => w !== null);
+    const wallets = topPayers.map((p) => p.clientWallet).filter((w): w is string => w !== null);
 
     if (wallets.length === 0) return [];
 
@@ -490,7 +489,7 @@ export class AnalyticsService {
     startDate?: Date,
     endDate?: Date,
   ): Promise<UserRevenueTimelineResponse[]> {
-    // Get all gateways for this user
+    console.log('test');
     const gateways = await this.prisma.gateway.findMany({
       where: { userId, status: { not: 'deleted' } },
       select: { id: true },
@@ -501,20 +500,28 @@ export class AnalyticsService {
     const gatewayIds = gateways.map((g) => g.id);
     const truncFn = this.getDateTruncFunction(interval);
 
+    const startCondition = startDate ? Prisma.sql`AND "createdAt" >= ${startDate}` : Prisma.empty;
+
+    const endCondition = endDate ? Prisma.sql`AND "createdAt" <= ${endDate}` : Prisma.empty;
+
     const result = await this.prisma.$queryRaw<
-      { timestamp: Date; revenue: string; count: bigint }[]
+      {
+        timestamp: Date;
+        revenue: string;
+        count: bigint;
+      }[]
     >`
-      SELECT 
-        DATE_TRUNC(${truncFn}, "createdAt") as timestamp,
-        COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as revenue,
-        COUNT(*) as count
-      FROM "RequestLog"
-      WHERE "gatewayId" = ANY(${gatewayIds})
+    SELECT 
+      DATE_TRUNC(${truncFn}, "createdAt") as timestamp,
+      COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as revenue,
+      COUNT(*) as count
+    FROM "RequestLog"
+    WHERE "gatewayId" = ANY(${gatewayIds})
       AND "settlementStatus" = 'success'
-      ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
-      ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
-      GROUP BY DATE_TRUNC(${truncFn}, "createdAt")
-      ORDER BY timestamp ASC
+    ${startCondition}
+    ${endCondition}
+    GROUP BY 1
+    ORDER BY timestamp ASC
     `;
 
     return result.map((r) => ({
@@ -544,20 +551,26 @@ export class AnalyticsService {
     const gatewayIds = gateways.map((g) => g.id);
     const truncFn = this.getDateTruncFunction(interval);
 
+    // 1. Define dynamic fragments using Prisma.sql
+    const startFilter = startDate ? Prisma.sql`AND "createdAt" >= ${startDate}` : Prisma.empty;
+
+    const endFilter = endDate ? Prisma.sql`AND "createdAt" <= ${endDate}` : Prisma.empty;
+
+    // 2. Execute the query using a single $queryRaw call
     const result = await this.prisma.$queryRaw<
       { timestamp: Date; total: bigint; paid: bigint; failed: bigint }[]
     >`
-      SELECT 
-        DATE_TRUNC(${truncFn}, "createdAt") as timestamp,
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE "settlementStatus" = 'success') as paid,
-        COUNT(*) FILTER (WHERE "statusCode" >= 400) as failed
-      FROM "RequestLog"
-      WHERE "gatewayId" = ANY(${gatewayIds})
-      ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
-      ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
-      GROUP BY DATE_TRUNC(${truncFn}, "createdAt")
-      ORDER BY timestamp ASC
+    SELECT 
+      DATE_TRUNC(${truncFn}, "createdAt") as timestamp,
+      COUNT(*) as total,
+      COUNT(*) FILTER (WHERE "settlementStatus" = 'success') as paid,
+      COUNT(*) FILTER (WHERE "statusCode" >= 400) as failed
+    FROM "RequestLog"
+    WHERE "gatewayId" = ANY(${gatewayIds})
+    ${startFilter}
+    ${endFilter}
+    GROUP BY 1
+    ORDER BY timestamp ASC
     `;
 
     return result.map((r) => ({
@@ -584,5 +597,3 @@ export class AnalyticsService {
     return interval;
   }
 }
-
-
