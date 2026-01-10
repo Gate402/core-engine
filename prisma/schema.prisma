@@ -72,7 +72,6 @@ model RequestLog {
   paymentRequired Boolean  @default(false)
   paymentProvided Boolean  @default(false)
   paymentValid    Boolean  @default(false)
-  paymentId       String?
   durationMs      Int?
   clientWallet    String?
   clientIp        String?
@@ -114,10 +113,10 @@ model DailyStats {
   failedRequests Int @default(0) // 4xx/5xx responses
 
   // Payment metrics
-  paymentAttempts Int    @default(0) // Requests with payment header
-  successfulPayments Int @default(0) // Valid & settled payments
-  failedPayments  Int    @default(0) // Invalid or failed settlements
-  totalRevenue    String @default("0") // In smallest token unit
+  paymentAttempts    Int    @default(0) // Requests with payment header
+  successfulPayments Int    @default(0) // Valid & settled payments
+  failedPayments     Int    @default(0) // Invalid or failed settlements
+  totalRevenue       String @default("0") // In smallest token unit
 
   // Payer metrics
   uniquePayers Int @default(0) // Distinct wallets
@@ -140,6 +139,7 @@ model Chain {
   nativeCurrency String // e.g. "eth"
   rpcUrl         String?
   blockExplorer  String?
+  imageUrl       String? // Chain logo/icon URL
   tokens         Token[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -154,6 +154,7 @@ model Token {
   decimals  Int
   name      String? // EIP-712 name
   version   String? // EIP-712 version
+  imageUrl  String? // Token logo/icon URL
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
