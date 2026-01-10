@@ -21,9 +21,10 @@ config();
  */
 
 const evmPrivateKey = process.env.EVM_PRIVATE_KEY as `0x${string}`;
-const gatewayHost = process.env.GATEWAY_HOST || 'test-api.localhost';
-const port = process.env.SERVER_PORT || '3030';
-const baseURL = `http://${gatewayHost}:${port}`;
+const gatewayHost = process.env.GATEWAY_HOST || 'http://test-api.localhost';
+const port = process.env.SERVER_PORT;
+const baseURL = port ? `${gatewayHost}:${port}` : gatewayHost;
+console.log({ baseURL });
 
 if (!evmPrivateKey) {
   console.error('❌ EVM_PRIVATE_KEY environment variable is required');
@@ -63,6 +64,7 @@ async function testPaymentFlow(path: string = '/') {
 
   // Step 2: Decode payment requirements
   const paymentRequiredHeader = response.headers.get('PAYMENT-REQUIRED');
+  console.log({ response: response.headers });
   if (!paymentRequiredHeader) {
     console.error('❌ Missing PAYMENT-REQUIRED header');
     return;
@@ -86,14 +88,13 @@ async function testPaymentFlow(path: string = '/') {
   // Step 3: Create payment
   console.log('🔐 Step 3: Creating payment signature...');
   const paymentPayload = await client.createPaymentPayload(paymentRequired);
+
   const paymentHeader = encodePaymentSignatureHeader(paymentPayload);
   console.log('   ✅ Payment created\n');
 
   // Step 4: Retry with payment
   console.log('🔄 Step 4: Retrying with PAYMENT-SIGNATURE header...');
-  console.log(paymentHeader);
   try {
-    console.log('retrying');
     response = await fetch(url, {
       headers: {
         'PAYMENT-SIGNATURE': paymentHeader,
@@ -102,7 +103,6 @@ async function testPaymentFlow(path: string = '/') {
     console.log('hahahah');
     console.log(`📥 Response: ${response.status} ${response.statusText}\n`);
   } catch (error) {
-    console.log(error);
     console.error('❌ Payment verification failed');
     console.error('Response:', await response.text());
     return;
