@@ -246,4 +246,22 @@ export class AnalyticsTsoaController extends Controller {
 
     return this.analyticsService.getLatestTransactions(gatewayId, limit || 50, start, end);
   }
+
+  /**
+   * Get a specific request log by ID
+   * @summary Get Request Log by ID
+   */
+  @Get('request-log/{requestLogId}')
+  @Response<ErrorResponse>(401, 'Unauthorized')
+  @Response<ErrorResponse>(404, 'Not Found')
+  public async getRequestLogById(requestLogId: string): Promise<LatestTransactionResponse> {
+    const requestLog = await this.analyticsService.getRequestLogById(requestLogId);
+
+    if (!requestLog) {
+      this.setStatus(404);
+      throw new Error('Request log not found');
+    }
+
+    return requestLog;
+  }
 }

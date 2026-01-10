@@ -441,6 +441,62 @@ export class AnalyticsService {
     }));
   }
 
+  /**
+   * Get a single request log by ID
+   */
+  async getRequestLogById(requestLogId: string): Promise<LatestTransactionResponse | null> {
+    const transaction = await this.prisma.requestLog.findUnique({
+      where: { id: requestLogId },
+      select: {
+        id: true,
+        gatewayId: true,
+        method: true,
+        path: true,
+        statusCode: true,
+        clientWallet: true,
+        clientIp: true,
+        paymentAmount: true,
+        paymentToken: true,
+        paymentNetwork: true,
+        settlementTxHash: true,
+        settlementStatus: true,
+        durationMs: true,
+        paymentVerifyMs: true,
+        settlementMs: true,
+        originLatencyMs: true,
+        errorType: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+    });
+
+    if (!transaction) {
+      return null;
+    }
+
+    return {
+      id: transaction.id,
+      gatewayId: transaction.gatewayId,
+      method: transaction.method,
+      path: transaction.path,
+      statusCode: transaction.statusCode,
+      clientWallet: transaction.clientWallet,
+      clientIp: transaction.clientIp,
+      paymentAmount: transaction.paymentAmount,
+      paymentToken: transaction.paymentToken,
+      paymentNetwork: transaction.paymentNetwork,
+      settlementTxHash: transaction.settlementTxHash,
+      settlementStatus: transaction.settlementStatus,
+      durationMs: transaction.durationMs,
+      paymentVerifyMs: transaction.paymentVerifyMs,
+      settlementMs: transaction.settlementMs,
+      originLatencyMs: transaction.originLatencyMs,
+      errorType: transaction.errorType,
+      errorMessage: transaction.errorMessage,
+      createdAt: transaction.createdAt.toISOString(),
+    };
+  }
+
   // ============ User-Level Analytics (Dashboard) ============
 
   /**
