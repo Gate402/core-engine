@@ -20,7 +20,6 @@ export interface RequestLogData {
   paymentRequired: boolean;
   paymentProvided: boolean;
   paymentValid: boolean;
-  paymentId?: string;
   durationMs?: number;
   clientWallet?: string;
   clientIp?: string;
@@ -59,7 +58,6 @@ export class AnalyticsService {
           paymentRequired: data.paymentRequired,
           paymentProvided: data.paymentProvided,
           paymentValid: data.paymentValid,
-          paymentId: data.paymentId,
           durationMs: data.durationMs,
           clientWallet: data.clientWallet,
           clientIp: data.clientIp,

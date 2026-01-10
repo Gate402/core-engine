@@ -222,5 +222,3 @@ export class AnalyticsTsoaController extends Controller {
     return this.analyticsService.getConversionFunnel(gatewayId, start, end);
   }
 }
-
-

@@ -78,7 +78,6 @@ export class ProxyService {
       paymentRequired: true,
       paymentProvided: !!paymentHeader,
       paymentValid: false,
-      paymentId: undefined as string | undefined,
       clientIp: req.ip,
       clientWallet: undefined as string | undefined,
       // Enhanced analytics fields
@@ -157,9 +156,12 @@ export class ProxyService {
     console.log('✅ Payment verified successfully');
     logData.paymentValid = true;
 
-    // Extract client wallet from payment payload if available
+    // Extract client wallet and payment amount from payment payload
     if (verifyResult.paymentPayload?.payload?.authorization?.from) {
       logData.clientWallet = verifyResult.paymentPayload.payload.authorization.from;
+    }
+    if (verifyResult.paymentPayload?.payload?.authorization?.amount) {
+      logData.paymentAmount = verifyResult.paymentPayload.payload.authorization.amount;
     }
 
     // 8. Settle payment BEFORE proxying to avoid header conflicts
@@ -195,7 +197,6 @@ export class ProxyService {
       // Capture successful settlement details
       logData.settlementTxHash = settleResult.transaction;
       logData.settlementStatus = 'success';
-      logData.paymentAmount = gateway.defaultPricePerRequest;
 
       // Add PAYMENT-RESPONSE header (v2 protocol)
       const settlementHeader = Buffer.from(JSON.stringify(settleResult)).toString('base64');
