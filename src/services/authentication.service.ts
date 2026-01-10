@@ -163,7 +163,7 @@ export class AuthenticationService {
     const nonce = nanoid();
 
     let user = await this.prisma.user.findUnique({
-      where: { id: evmAddress.toLowerCase() },
+      where: { evmAddress: evmAddress.toLowerCase() },
     });
 
     if (!user) {
@@ -177,23 +177,25 @@ export class AuthenticationService {
       // We must generate a placeholder email or change schema.
       // Plan didn't catch this.
       // Strategy: Generate a placeholder email: `wallet_ADDRESS@gate402.eth`
-      
+
       const placeholderEmail = `${evmAddress.toLowerCase()}@noemail-gate402.eth`;
-      
+
       // Check if this placeholder already exists (collision unlikely but possible if user manually set it)
-      const existingUser = await this.prisma.user.findUnique({ where: { email: placeholderEmail } });
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: placeholderEmail },
+      });
       if (existingUser) {
-          user = await this.prisma.user.update({
-              where: { id: existingUser.id },
-              data: { nonce }
-          });
+        user = await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: { nonce },
+        });
       } else {
         user = await this.prisma.user.create({
-            data: {
+          data: {
             email: placeholderEmail,
             evmAddress: evmAddress.toLowerCase(),
             nonce,
-            },
+          },
         });
       }
     } else {
@@ -215,22 +217,23 @@ export class AuthenticationService {
   ): Promise<{ user: User; tokens: any }> {
     // 1. Verify signature using viem
     // We assume the message is the raw text signed
-    
+
     // Very simple parsing to extract address - robust parsing would be better but keeping it simple as per plan
     // SIWE message format usually contains "Ethereum address: 0x..."
     // We will rely on the provided address in the message matching the recovered address.
-    
 
     // Recover the address from the signature
-    const recoveredAddress = await import('viem').then(m => m.recoverMessageAddress({
-         message,
-         signature: signature as `0x${string}`,
-    }));
-    
-    // We expect the message to contain the address, but for now we trust the recovered address 
+    const recoveredAddress = await import('viem').then((m) =>
+      m.recoverMessageAddress({
+        message,
+        signature: signature as `0x${string}`,
+      }),
+    );
+
+    // We expect the message to contain the address, but for now we trust the recovered address
     // satisfies the ownership if it matches a user with a valid nonce.
     // Ideally we parse the message to ensure it is valid SIWE message.
-    
+
     const valid = await verifyMessage({
       address: recoveredAddress,
       message,
@@ -240,13 +243,13 @@ export class AuthenticationService {
     if (!valid) {
       throw new Error('Invalid signature');
     }
-    
+
     // Check if address matches a user with the nonce
-    // We need to extract the nonce from the message to ensure it matches what we expect, 
+    // We need to extract the nonce from the message to ensure it matches what we expect,
     // OR simply look up the user by address and check if the nonce is IN the message.
-    
+
     const user = await this.prisma.user.findFirst({
-      where: { evmAddress: recoveredAddress.toLowerCase()},
+      where: { evmAddress: recoveredAddress.toLowerCase() },
     });
 
     if (!user || !user.nonce) {
@@ -298,7 +301,11 @@ export class AuthenticationService {
   /**
    * Updates user profile (email, name)
    */
-  public async updateProfile(userId: string, email: string, name: string): Promise<{ user: User; tokens: any }> {
+  public async updateProfile(
+    userId: string,
+    email: string,
+    name: string,
+  ): Promise<{ user: User; tokens: any }> {
     // Check if email is taken by another user
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
