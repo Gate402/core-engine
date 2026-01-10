@@ -15,7 +15,7 @@ export interface CreateGatewayRequest {
   /** Target origin URL to proxy to */
   originUrl: string;
   /** Price per request in USD (e.g., 0.001) */
-  pricePerRequest: '0.01';
+  pricePerRequest: string;
   /** Subdomain for the gateway (e.g., "myapi") */
   subdomain: string;
   /** Token ID to use for payments */
