@@ -4,6 +4,7 @@ import { AnalyticsService } from '../services/analytics.service';
 import type {
   ConversionFunnelResponse,
   GatewayOverviewResponse,
+  LatestTransactionResponse,
   RequestTimelineResponse,
   RevenueTimelineResponse,
   RouteAnalyticsResponse,
@@ -220,5 +221,29 @@ export class AnalyticsTsoaController extends Controller {
     const end = endDate ? new Date(endDate) : undefined;
 
     return this.analyticsService.getConversionFunnel(gatewayId, start, end);
+  }
+
+  /**
+   * Get latest transactions for a gateway
+   * @summary Latest Transactions
+   */
+  @Get('latest-transactions')
+  @Response<ErrorResponse>(400, 'Bad Request')
+  @Response<ErrorResponse>(401, 'Unauthorized')
+  public async getLatestTransactions(
+    @Query() gatewayId: string,
+    @Query() limit?: number,
+    @Query() startDate?: string,
+    @Query() endDate?: string,
+  ): Promise<LatestTransactionResponse[]> {
+    if (!gatewayId) {
+      this.setStatus(400);
+      throw new Error('gatewayId required');
+    }
+
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    return this.analyticsService.getLatestTransactions(gatewayId, limit || 50, start, end);
   }
 }

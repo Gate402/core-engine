@@ -3,6 +3,7 @@ import { getPrismaClient } from '../config/database';
 import type {
   ConversionFunnelResponse,
   GatewayOverviewResponse,
+  LatestTransactionResponse,
   RequestTimelineResponse,
   RevenueTimelineResponse,
   RouteAnalyticsResponse,
@@ -372,6 +373,72 @@ export class AnalyticsService {
         overallRate: Math.round(overallRate * 10000) / 100,
       },
     };
+  }
+
+  /**
+   * Get latest transactions for a gateway
+   */
+  async getLatestTransactions(
+    gatewayId: string,
+    limit = 50,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<LatestTransactionResponse[]> {
+    const dateFilter = this.buildDateFilter(startDate, endDate);
+
+    const transactions = await this.prisma.requestLog.findMany({
+      where: {
+        gatewayId,
+        ...dateFilter,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      select: {
+        id: true,
+        gatewayId: true,
+        method: true,
+        path: true,
+        statusCode: true,
+        clientWallet: true,
+        clientIp: true,
+        paymentAmount: true,
+        paymentToken: true,
+        paymentNetwork: true,
+        settlementTxHash: true,
+        settlementStatus: true,
+        durationMs: true,
+        paymentVerifyMs: true,
+        settlementMs: true,
+        originLatencyMs: true,
+        errorType: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+    });
+
+    return transactions.map((tx) => ({
+      id: tx.id,
+      gatewayId: tx.gatewayId,
+      method: tx.method,
+      path: tx.path,
+      statusCode: tx.statusCode,
+      clientWallet: tx.clientWallet,
+      clientIp: tx.clientIp,
+      paymentAmount: tx.paymentAmount,
+      paymentToken: tx.paymentToken,
+      paymentNetwork: tx.paymentNetwork,
+      settlementTxHash: tx.settlementTxHash,
+      settlementStatus: tx.settlementStatus,
+      durationMs: tx.durationMs,
+      paymentVerifyMs: tx.paymentVerifyMs,
+      settlementMs: tx.settlementMs,
+      originLatencyMs: tx.originLatencyMs,
+      errorType: tx.errorType,
+      errorMessage: tx.errorMessage,
+      createdAt: tx.createdAt.toISOString(),
+    }));
   }
 
   // ============ User-Level Analytics (Dashboard) ============

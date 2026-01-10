@@ -145,4 +145,43 @@ export interface AnalyticsQueryParams {
   limit?: number;
 }
 
-
+export interface LatestTransactionResponse {
+  /** Transaction ID */
+  id: string;
+  /** Gateway ID */
+  gatewayId: string;
+  /** HTTP method */
+  method: string;
+  /** Request path */
+  path: string;
+  /** HTTP status code */
+  statusCode: number;
+  /** Client wallet address */
+  clientWallet: string | null;
+  /** Client IP address */
+  clientIp: string | null;
+  /** Payment amount (in smallest token unit) */
+  paymentAmount: string | null;
+  /** Payment token symbol */
+  paymentToken: string | null;
+  /** Payment network */
+  paymentNetwork: string | null;
+  /** Settlement transaction hash */
+  settlementTxHash: string | null;
+  /** Settlement status */
+  settlementStatus: string | null;
+  /** Request duration in ms */
+  durationMs: number | null;
+  /** Payment verification time in ms */
+  paymentVerifyMs: number | null;
+  /** Settlement time in ms */
+  settlementMs: number | null;
+  /** Origin latency in ms */
+  originLatencyMs: number | null;
+  /** Error type if any */
+  errorType: string | null;
+  /** Error message if any */
+  errorMessage: string | null;
+  /** Request timestamp */
+  createdAt: string;
+}
