@@ -11,8 +11,10 @@ import dotenv from 'dotenv';
 import express from 'express';
 import { createWalletClient, http, publicActions } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia, mantleSepoliaTestnet } from 'viem/chains';
+import { baseSepolia, liskSepolia, mantleSepoliaTestnet } from 'viem/chains';
 import { PrismaClient } from '@prisma/client';
+
+const activeChains = [baseSepolia, mantleSepoliaTestnet, liskSepolia];
 
 export interface ChainAsset {
   symbol: string;
@@ -53,6 +55,8 @@ const main = async () => {
   if (chains.length === 0) {
     console.warn('⚠️ No chains found in database! Facilitator may not work correctly.');
   }
+  const facilitator = new x402Facilitator();
+  const evmAccount = privateKeyToAccount(process.env.FACILITATOR_PRIVATE_KEY as `0x${string}`);
 
   for (const chain of chains) {
     const assets: Record<string, ChainAsset> = {};
@@ -75,84 +79,63 @@ const main = async () => {
   console.log('✅ Loaded chain configuration:', Object.keys(chainConfigs).join(', '));
 
   // Initialize the EVM account from private key
-  const evmAccount = privateKeyToAccount(process.env.FACILITATOR_PRIVATE_KEY as `0x${string}`);
   console.info(`EVM Facilitator account: ${evmAccount.address}`);
 
-  const viemClient = createWalletClient({
-    account: evmAccount,
-    chain: mantleSepoliaTestnet,
-    transport: http(),
-  }).extend(publicActions);
+  // Register EVM and SVM schemes using dynamic DB config
+  for (let chain of activeChains) {
+    const viemClient = createWalletClient({
+      account: evmAccount,
+      chain: chain,
+      transport: http(),
+    }).extend(publicActions);
+    const evmSigner = toFacilitatorEvmSigner({
+      getCode: (args: { address: `0x${string}` }) => viemClient.getCode(args),
+      address: evmAccount.address,
+      readContract: (args: {
+        address: `0x${string}`;
+        abi: readonly unknown[];
+        functionName: string;
+        args?: readonly unknown[];
+      }) =>
+        viemClient.readContract({
+          ...args,
+          args: args.args || [],
+        }),
+      verifyTypedData: (args: {
+        address: `0x${string}`;
+        domain: Record<string, unknown>;
+        types: Record<string, unknown>;
+        primaryType: string;
+        message: Record<string, unknown>;
+        signature: `0x${string}`;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) => viemClient.verifyTypedData(args as any),
+      writeContract: async (args: {
+        address: `0x${string}`;
+        abi: readonly unknown[];
+        functionName: string;
+        args: readonly unknown[];
+      }) => {
+        const hash = await viemClient.writeContract({
+          ...args,
+          args: args.args || [],
+        });
+        console.log({ hash });
 
-  const evmSigner = toFacilitatorEvmSigner({
-    getCode: (args: { address: `0x${string}` }) => viemClient.getCode(args),
-    address: evmAccount.address,
-    readContract: (args: {
-      address: `0x${string}`;
-      abi: readonly unknown[];
-      functionName: string;
-      args?: readonly unknown[];
-    }) =>
-      viemClient.readContract({
-        ...args,
-        args: args.args || [],
-      }),
-    verifyTypedData: (args: {
-      address: `0x${string}`;
-      domain: Record<string, unknown>;
-      types: Record<string, unknown>;
-      primaryType: string;
-      message: Record<string, unknown>;
-      signature: `0x${string}`;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) => viemClient.verifyTypedData(args as any),
-    writeContract: async (args: {
-      address: `0x${string}`;
-      abi: readonly unknown[];
-      functionName: string;
-      args: readonly unknown[];
-    }) => {
-      const hash = await viemClient.writeContract({
-        ...args,
-        args: args.args || [],
-      });
-      console.log({ hash });
-
-      return hash;
-    },
-    sendTransaction: (args: { to: `0x${string}`; data: `0x${string}` }) =>
-      viemClient.sendTransaction(args),
-    waitForTransactionReceipt: (args: { hash: `0x${string}` }) =>
-      viemClient.waitForTransactionReceipt(args),
-  });
-
-  // Facilitator can now handle all Solana networks with automatic RPC creation
-
-  const facilitator = new x402Facilitator()
-    .onBeforeVerify(async (context) => {
-      console.log('Before verify', context);
-    })
-    .onAfterVerify(async (context) => {
-      console.log('After verify', context);
-    })
-    .onVerifyFailure(async (context) => {
-      console.log('Verify failure', context);
-    })
-    .onBeforeSettle(async (context) => {
-      console.log('Before settle', context);
-    })
-    .onAfterSettle(async (context) => {
-      console.log('After settle', context);
-    })
-    .onSettleFailure(async (context) => {
-      console.log('Settle failure', context);
+        return hash;
+      },
+      sendTransaction: (args: { to: `0x${string}`; data: `0x${string}` }) =>
+        viemClient.sendTransaction(args),
+      waitForTransactionReceipt: (args: { hash: `0x${string}` }) =>
+        viemClient.waitForTransactionReceipt(args),
     });
 
-  // Register EVM and SVM schemes using dynamic DB config
-  registerExactEvmScheme(facilitator, {
-    signer: evmSigner,
-    networks: Object.keys(chainConfigs) as `${string}:${string}`[],
-  });
+    registerExactEvmScheme(facilitator, {
+      signer: evmSigner,
+      networks: `eip155:${chain.id}`,
+    });
+    console.log('Registered EVM scheme for chain', chain.id);
+  }
 
   // Initialize Express app
   const app = express();
