@@ -405,6 +405,10 @@ export class AnalyticsService {
     const gatewayIds = gateways.map((g) => g.id);
     const dateFilter = this.buildDateFilter(startDate, endDate);
 
+    // Define dynamic date filter fragments
+    const startFilter = startDate ? Prisma.sql`AND "createdAt" >= ${startDate}` : Prisma.empty;
+    const endFilter = endDate ? Prisma.sql`AND "createdAt" <= ${endDate}` : Prisma.empty;
+
     // Aggregate stats across all gateways
     const [totalStats, successfulPayments, uniquePayersResult, latencyResult] = await Promise.all([
       this.prisma.requestLog.aggregate({
@@ -434,9 +438,9 @@ export class AnalyticsService {
       SELECT COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as total
       FROM "RequestLog"
       WHERE "gatewayId" = ANY(${gatewayIds})
-      AND "settlementStatus" = 'success'
-      ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
-      ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+        AND "settlementStatus" = 'success'
+      ${startFilter}
+      ${endFilter}
     `;
 
     // Get per-gateway breakdown
@@ -450,9 +454,9 @@ export class AnalyticsService {
             SELECT COALESCE(SUM(CAST("paymentAmount" AS NUMERIC)), 0)::text as total
             FROM "RequestLog"
             WHERE "gatewayId" = ${gateway.id}
-            AND "settlementStatus" = 'success'
-            ${startDate ? this.prisma.$queryRaw`AND "createdAt" >= ${startDate}` : this.prisma.$queryRaw``}
-            ${endDate ? this.prisma.$queryRaw`AND "createdAt" <= ${endDate}` : this.prisma.$queryRaw``}
+              AND "settlementStatus" = 'success'
+            ${startFilter}
+            ${endFilter}
           `,
         ]);
 
